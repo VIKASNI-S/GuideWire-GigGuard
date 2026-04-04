@@ -1,4 +1,4 @@
-# Pheraksha
+# Phoeraksha
 
 AI-powered parametric income protection for India’s gig delivery workforce. The stack is **React + Vite** (frontend), **Express + TypeScript + Drizzle** (backend), **PostgreSQL (Neon)**, and a **Python FastAPI** ML service (Random Forest premium multiplier + risk scores).
 
@@ -123,7 +123,7 @@ The dashboard includes **Demo mode** buttons that call these endpoints.
 ## Project layout
 
 ```
-pheraksha/
+phoeraksha/
 ├── frontend/     # React 18 + Vite + Tailwind + Leaflet + Recharts
 ├── backend/      # Express + Drizzle + node-cron
 ├── ml-service/   # FastAPI + scikit-learn
@@ -138,8 +138,4 @@ pheraksha/
 - JWT expiry: **7 days** (login “Remember me” extends cookie max-age).
 - Demo and manual trigger routes require an **authenticated** session.
 
----
 
-## License
-
-MIT (adjust as needed for your submission).
