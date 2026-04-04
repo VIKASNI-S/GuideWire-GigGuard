@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@layer base {
+  html {
+    font-family: "DM Sans", "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+}
+
+.leaflet-container {
+  font-family: inherit;
+}
+
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+  70% {
+    transform: scale(1.05);
+    opacity: 0.4;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.9;
+  }
+}
+
+.animate-risk-pulse {
+  animation: pulse-ring 2s ease-in-out infinite;
+}
