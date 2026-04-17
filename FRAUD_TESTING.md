@@ -3,7 +3,7 @@
 ## Setup
 1. Make sure backend is running: `cd backend && npm run dev`
 2. Make sure `DEMO_MODE=true` in `backend/.env`
-3. Log in as a worker (e.g., `harshith@test.com`)
+3. Log in as a worker (e.g., `harshith@gmail.com`)
 4. Open admin panel in another tab: `http://localhost:3000/admin/login`
    - Email: `admin@phoeraksha.com` | Password: `Admin@123`
 
