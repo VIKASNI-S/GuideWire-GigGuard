@@ -14,21 +14,17 @@ type ScenarioRow = {
   congestion: number;
   roadClosure: boolean;
 };
-
 const SCENARIO_LABEL: Record<
   ScenarioKey,
-  { emoji: string; label: string; hint: string }
+  { icon: string; label: string; hint: string }
 > = {
-  normal: {emoji: "🌤", label: "Normal", hint: "Baseline" },
-  heavy_rain: { emoji: "🌧", label: "Heavy Rain", hint: "52 mm/h" },
-  heatwave: {emoji :"🔥", label: "Heatwave", hint: "46°C" },
-  flood: { emoji: "🌊", label: "Flood", hint: "98 mm + closure" },
-  aqi_crisis: { emoji: "🏭", label: "AQI Crisis", hint: "AQI 335" },
-  traffic_jam: { emoji: "🚦", label: "Traffic Jam", hint: "88% cong." },
+  normal: { icon: "fa-solid fa-cloud-sun", label: "Normal", hint: "Baseline" },
+  heavy_rain: { icon: "fa-solid fa-cloud-showers-heavy", label: "Heavy Rain", hint: "52 mm/h" },
+  heatwave: { icon: "fa-solid fa-fire", label: "Heatwave", hint: "46°C" },
+  flood: { icon: "fa-solid fa-water", label: "Flood", hint: "98 mm + closure" },
+  aqi_crisis: { icon: "fa-solid fa-smog", label: "AQI Crisis", hint: "AQI 335" },
+  traffic_jam: { icon: "fa-solid fa-traffic-light", label: "Traffic Jam", hint: "88% cong." }
 };
-
-
-
 type Props = {
   onAfterForce?: () => void | Promise<void>;
 };
@@ -114,114 +110,123 @@ export function DemoModePanel({ onAfterForce }: Props) {
   const activeMeta = rows.find((r) => r.key === activeScenario);
 
   return (
-    <section className="mt-10 border-t border-slate-200 pt-8">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <h2 className="text-lg font-bold text-slate-900">Demo Mode</h2>
-          <span
-            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-              demoMode
-                ? "bg-amber-200 text-amber-900"
-                : "bg-slate-200 text-slate-600"
-            }`}
-          >
-            {demoMode ? "DEMO" : "LIVE"}
-          </span>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-sm text-slate-600">Real data</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={demoMode}
-            disabled={loading}
-            onClick={() => void onToggle(!demoMode)}
-            className={`relative inline-flex h-8 w-14 shrink-0 rounded-full transition-colors ${
-              demoMode ? "bg-teal-500" : "bg-slate-300"
-            } disabled:opacity-50`}
-          >
-            <span
-              className={`inline-block h-7 w-7 mt-0.5 rounded-full bg-white shadow transition-transform ${
-                demoMode ? "translate-x-6" : "translate-x-0.5"
-              }`}
-            />
-          </button>
-          <span className="text-sm font-medium text-slate-800">Demo</span>
-        </div>
-      </div>
-
-      <p className="text-sm text-slate-600 mb-4">
-        Select a disruption scenario to test automatic payout triggers. Data source
-        switches server-side — cron and force-trigger use the same engine as
-        production.
-      </p>
-
-      {demoMode && (
-        <>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 mb-6">
-            {(Object.keys(SCENARIO_LABEL) as ScenarioKey[]).map((key) => {
-              const ui = SCENARIO_LABEL[key];
-              const active = activeScenario === key;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => void pickScenario(key)}
-                  className={`rounded-xl border-2 p-3 text-left transition-colors ${
-                    active
-                      ? "border-teal-500 bg-teal-50 ring-2 ring-teal-200"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
-                >
-                  <div className="text-lg">{ui.emoji}</div>
-                  <div className="text-xs font-semibold text-slate-900 mt-1">
-                    {ui.label}
-                  </div>
-                  <div className="text-[10px] text-slate-500 mt-0.5">{ui.hint}</div>
-                  {active && (
-                    <div className="text-[10px] text-teal-700 font-medium mt-1">
-                      ✓ Active
-                    </div>
-                  )}
-                </button>
-              );
-            })}
+    <section className="mt-10 border-t border-slate-200 pt-8 pb-10">
+      <div className="bg-slate-950 rounded-2xl p-6 text-white shadow-2xl border border-slate-800 relative overflow-hidden">
+        <div className="relative z-10">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="bg-amber-500/10 p-2 rounded-lg border border-amber-500/20">
+                <i className="fa-solid fa-vial text-amber-500"></i>
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Simulation Control Center</h2>
+                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest">Judge & Demo Environment</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 bg-slate-900/50 p-2 rounded-xl border border-slate-800">
+              <span className="text-xs font-bold text-slate-500 uppercase">Live Pipeline</span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={demoMode}
+                disabled={loading}
+                onClick={() => void onToggle(!demoMode)}
+                className={`relative inline-flex h-8 w-16 shrink-0 rounded-full transition-all duration-300 ${demoMode ? "bg-amber-500" : "bg-slate-700"
+                  } disabled:opacity-50 shadow-inner`}
+              >
+                <span
+                  className={`inline-block h-6 w-6 mt-1 rounded-full bg-white shadow-lg transition-transform duration-300 ${demoMode ? "translate-x-9" : "translate-x-1"
+                    }`}
+                />
+              </button>
+              <span className={`text-xs font-bold uppercase ${demoMode ? 'text-amber-500' : 'text-slate-500'}`}>SIM</span>
+            </div>
           </div>
 
-          {activeMeta && (
-            <div className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700 mb-4">
-              <p>
-                <span className="font-semibold">Active:</span>{" "}
-                {SCENARIO_LABEL[activeScenario].emoji}{" "}
-                {SCENARIO_LABEL[activeScenario].label} — {activeMeta.weatherDescription}
-              </p>
-              <p className="text-xs text-slate-500 mt-1">
-                Traffic: {activeMeta.trafficDescription}
-              </p>
+          <p className="text-xs text-slate-400 mb-6 max-w-2xl leading-relaxed">
+            Switch between real-world data and disruption scenarios. When simulation is active, the system injects mock environmental data into the same
+            <span className="text-white font-bold"> Decision Engine </span> used in production.
+          </p>
+
+          {demoMode && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+                {(Object.keys(SCENARIO_LABEL) as ScenarioKey[]).map((key) => {
+                  const ui = SCENARIO_LABEL[key];
+                  const active = activeScenario === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => void pickScenario(key)}
+                      className={`rounded-xl border transition-all duration-300 p-4 text-left group ${active
+                        ? "border-amber-500/50 bg-amber-500/10 shadow-[0_0_20px_rgba(245,158,11,0.1)]"
+                        : "border-slate-800 bg-slate-900/50 hover:border-slate-700 hover:bg-slate-900"
+                        }`}
+                    >
+                      <div className={`text-2xl mb-2 transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{ui.emoji}</div>
+                      <div className={`text-xs font-bold uppercase tracking-tight ${active ? 'text-amber-500' : 'text-slate-300'}`}>
+                        {ui.label}
+                      </div>
+                      <div className="text-[9px] font-medium text-slate-500 mt-1">{ui.hint}</div>
+                      {active && (
+                        <div className="mt-2 h-1 w-full bg-amber-500/20 rounded-full overflow-hidden">
+                          <div className="h-full w-full bg-amber-500 animate-pulse"></div>
+                        </div>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex flex-col md:flex-row gap-4">
+                <div className="flex-1 bg-slate-900/80 rounded-xl p-4 border border-slate-800">
+                  <div className="text-[10px] font-bold text-slate-500 uppercase mb-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Current Context
+                  </div>
+                  {activeMeta ? (
+                    <div className="text-xs text-slate-300 space-y-1">
+                      <p><span className="text-slate-500">Weather:</span> {activeMeta.weatherDescription}</p>
+                      <p><span className="text-slate-500">Traffic:</span> {activeMeta.trafficDescription}</p>
+                    </div>
+                  ) : <p className="text-xs text-slate-500 italic">No scenario selected</p>}
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void forceTrigger()}
+                    className="h-full inline-flex items-center gap-3 rounded-xl bg-white px-6 py-4 text-sm font-black text-slate-950 hover:bg-slate-100 transition-colors disabled:opacity-50 shadow-[0_0_30px_rgba(255,255,255,0.1)]"
+                  >
+                    {busy ? (
+                      <>
+                        <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-950 border-t-transparent" />
+                        Verifying Logic…
+                      </>
+                    ) : (
+                      <>
+                        <i className="fa-solid fa-bolt-lightning text-amber-500"></i>
+                        EXECUTE TRIGGER CHECK
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-3 bg-slate-900/30 rounded-lg border border-slate-800/50 flex items-start gap-3">
+                <i className="fa-solid fa-circle-info text-slate-500 mt-0.5"></i>
+                <p className="text-[10px] text-slate-500 leading-relaxed italic">
+                  Note: In simulation mode, the Activity Drop Logic is scenario-linked. For example, selecting
+                  <span className="text-slate-300 font-bold"> Flood </span> will simulate 10-40% worker activity to test
+                  payout verification rules.
+                </p>
+              </div>
             </div>
           )}
-
-          <button
-            type="button"
-            disabled={busy}
-            onClick={() => void forceTrigger()}
-            className="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
-          >
-            {busy ? (
-              <>
-                <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                Running…
-              </>
-            ) : (
-              <>⚡ Force trigger check now</>
-            )}
-          </button>
-          <p className="text-xs text-slate-500 mt-2">
-            Judging / demo only — runs the same trigger pipeline as the 10-minute
-            cron.
-          </p>
-        </>
-      )}
+        </div>
+        <div className="absolute right-0 top-0 w-1/3 h-full bg-gradient-to-l from-amber-500/5 to-transparent pointer-events-none"></div>
+      </div>
     </section>
   );
 }

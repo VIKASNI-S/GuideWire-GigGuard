@@ -35,7 +35,7 @@ export function AdminOverviewPage() {
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={data.payoutsTrend}>
               <Tooltip />
-              <Area dataKey="total" stroke="#14b8a6" fill="#99f6e4" />
+              <Area dataKey="total" stroke="#14b0b8ff" fill="#0c32f1ff" />
             </AreaChart>
           </ResponsiveContainer>
         </div>

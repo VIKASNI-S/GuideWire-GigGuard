@@ -37,7 +37,7 @@ export function LandingPage() {
       <section className="relative overflow-hidden min-h-screen max-w-6xl mx-auto px-6 pt-20 pb-14 grid lg:grid-cols-2 gap-10 items-center">
         <div>
           <motion.span initial={{ x: -25, opacity: 0 }} animate={{ x: 0, opacity: 1 }} className="inline-flex rounded-full border border-teal-400/40 px-4 py-1.5 text-xs text-teal-200">
-            🛡️ Real-Time Insurance for Gig Workers
+            <i className="fa-thin fa-shield"></i> Real-Time Insurance for Phoeraksha
           </motion.span>
           <h1 className="mt-6 text-5xl font-bold leading-tight">{typed}</h1>
           <motion.h2 initial={{ opacity: 0 }} animate={{ opacity: typed.length > 0 ? 1 : 0 }} className="text-5xl font-extrabold text-teal-300 drop-shadow-[0_0_12px_rgba(45,212,191,0.6)]">
@@ -118,7 +118,7 @@ export function LandingPage() {
             ["⚡", "Instant Payouts", "No claims. No waiting. Fully automatic."],
             ["🌧️", "Weather-Based Protection", "Smart triggers using real-time environmental data."],
             ["🤖", "AI Risk Engine", "Multi-factor risk evaluation for fairness."],
-            ["🛡️", "Fraud Protection", "Advanced GPS spoofing detection using behavioral analysis."],
+            ["<i className='fa-thin fa-shield'></i>", "Fraud Protection", "Advanced GPS spoofing detection using behavioral analysis."],
           ].map(([i, t, d], idx) => (
             <motion.div key={t} initial={{ rotateX: 90, opacity: 0 }} whileInView={{ rotateX: 0, opacity: 1 }} transition={{ delay: idx * 0.08 }} className="rounded-xl border bg-white p-5 hover:-translate-y-1 hover:shadow-xl transition">
               <p className="text-2xl">{i}</p>
@@ -141,13 +141,12 @@ export function LandingPage() {
               initial={{ y: 30, opacity: 0 }}
               whileInView={{ y: 0, opacity: 1 }}
               transition={{ delay: i * 0.1 }}
-              className={`rounded-xl border p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
-                i === 1
-                  ? "bg-gradient-to-br from-sky-500 to-teal-600 border-2 border-sky-400 text-white -translate-y-2"
-                  : i === 2
-                    ? "bg-slate-900 border-2 border-slate-700 text-white"
-                    : "bg-white border-2 border-slate-200 text-slate-900"
-              }`}
+              className={`rounded-xl border p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${i === 1
+                ? "bg-gradient-to-br from-sky-500 to-teal-600 border-2 border-sky-400 text-white -translate-y-2"
+                : i === 2
+                  ? "bg-slate-900 border-2 border-slate-700 text-white"
+                  : "bg-white border-2 border-slate-200 text-slate-900"
+                }`}
             >
               {i === 1 && (
                 <span className="inline-flex rounded-full bg-amber-400 text-amber-950 text-xs font-semibold px-3 py-1">
@@ -166,13 +165,12 @@ export function LandingPage() {
               </ul>
               <Link
                 to="/plans"
-                className={`mt-5 inline-flex w-full justify-center rounded-lg py-2.5 font-semibold ${
-                  i === 1
-                    ? "bg-white text-slate-900"
-                    : i === 2
-                      ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white"
-                      : "bg-blue-600 text-white hover:bg-blue-700"
-                }`}
+                className={`mt-5 inline-flex w-full justify-center rounded-lg py-2.5 font-semibold ${i === 1
+                  ? "bg-white text-slate-900"
+                  : i === 2
+                    ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white"
+                    : "bg-blue-600 text-white hover:bg-blue-700"
+                  }`}
               >
                 Select Plan
               </Link>

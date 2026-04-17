@@ -170,12 +170,31 @@ function cityCoords(name: string): { lat: number; lon: number } | null {
   return CITY_COORDS[key] ?? null;
 }
 
+export function getFraudSeverity(distanceKm: number, timeMins: number): "Low" | "Medium" | "High" {
+  const speedKmh = timeMins > 0 ? (distanceKm / (timeMins / 60)) : distanceKm * 60;
+  if (distanceKm > 50 || speedKmh > 150) return "High";
+  if (distanceKm > 10 || speedKmh > 80) return "Medium";
+  return "Low";
+}
+
 export async function detectGpsSpoofing(
   db: DbClient,
   userId: string,
   newLat: number,
   newLon: number
-): Promise<{ isSpoofed: boolean; reason?: string; confidence: number }> {
+): Promise<{ 
+  isSpoofed: boolean; 
+  reason?: string; 
+  confidence: number;
+  severity: "Low" | "Medium" | "High";
+  metadata?: {
+    lastValidLoc: { lat: number; lon: number } | null;
+    currentClaimed: { lat: number; lon: number };
+    distanceJumpKm: number;
+    timeDiffMins: number;
+    expectedMaxKm: number;
+  }
+}> {
   const recent = await db
     .select({
       latitude: locationPings.latitude,
@@ -185,32 +204,43 @@ export async function detectGpsSpoofing(
     .from(locationPings)
     .where(eq(locationPings.userId, userId))
     .orderBy(desc(locationPings.recordedAt))
-    .limit(5);
+    .limit(1);
 
-  if (recent.length < 1) return { isSpoofed: false, confidence: 0 };
+  const currentClaimed = { lat: newLat, lon: newLon };
+  if (recent.length < 1) {
+    return { isSpoofed: false, confidence: 0, severity: "Low", metadata: { lastValidLoc: null, currentClaimed, distanceJumpKm: 0, timeDiffMins: 0, expectedMaxKm: 0 }};
+  }
 
   const last = recent[0];
   const lastAt = last.recordedAt ? new Date(last.recordedAt) : null;
+  const prevLat = Number(last.latitude ?? 0);
+  const prevLon = Number(last.longitude ?? 0);
+  const lastValidLoc = { lat: prevLat, lon: prevLon };
+
   if (lastAt) {
     const mins = Math.max(1 / 60, (Date.now() - lastAt.getTime()) / 60000);
-    const prevLat = Number(last.latitude ?? 0);
-    const prevLon = Number(last.longitude ?? 0);
     const distanceKm = haversineDistance(prevLat, prevLon, newLat, newLon);
-    const maxDistanceKm = (mins / 60) * 60;
+    const maxDistanceKm = (mins / 60) * 60; // 60 km/h realistic urban speed
+    
     if (distanceKm > maxDistanceKm + 1) {
+      const severity = getFraudSeverity(distanceKm, mins);
       return {
         isSpoofed: true,
-        reason: `Location jump: ${distanceKm.toFixed(1)}km in ${mins.toFixed(
-          1
-        )} min (max realistic: ${maxDistanceKm.toFixed(1)}km)`,
-        confidence: Math.min(
-          99,
-          Math.round((distanceKm / Math.max(0.1, maxDistanceKm)) * 50)
-        ),
+        reason: `Location jump: ${distanceKm.toFixed(1)}km in ${mins.toFixed(1)} min (Expected: <${maxDistanceKm.toFixed(1)}km)`,
+        confidence: Math.min(99, Math.round((distanceKm / Math.max(0.1, maxDistanceKm)) * 50)),
+        severity,
+        metadata: {
+          lastValidLoc,
+          currentClaimed,
+          distanceJumpKm: Number(distanceKm.toFixed(2)),
+          timeDiffMins: Number(mins.toFixed(1)),
+          expectedMaxKm: Number(maxDistanceKm.toFixed(2))
+        }
       };
     }
   }
 
+  // City center consistency check
   const [u] = await db
     .select({ city: users.city })
     .from(users)
@@ -224,10 +254,18 @@ export async function detectGpsSpoofing(
         isSpoofed: true,
         reason: `Worker appears to be ${dCity.toFixed(0)}km from claimed city`,
         confidence: 85,
+        severity: "Medium",
+        metadata: {
+          lastValidLoc: center,
+          currentClaimed,
+          distanceJumpKm: Number(dCity.toFixed(2)),
+          timeDiffMins: 0,
+          expectedMaxKm: 80
+        }
       };
     }
   }
-  return { isSpoofed: false, confidence: 0 };
+  return { isSpoofed: false, confidence: 0, severity: "Low" };
 }
 
 export async function calculateNeighborhoodScore(
@@ -352,9 +390,9 @@ export async function runFullFraudCheck(
       triggerEventId,
       userId,
       fraudType: "GPS_SPOOFING",
-      severity: gpsCheck.confidence > 85 ? "critical" : "high",
+      severity: gpsCheck.severity, // Low/Medium/High
       confidenceScore: gpsCheck.confidence,
-      evidence: { reason: gpsCheck.reason, confidence: gpsCheck.confidence },
+      evidence: { ...gpsCheck.metadata, reason: gpsCheck.reason },
       clusterData: {
         neighborScore: neighborCheck.score,
         nearbyCount: neighborCheck.nearbyCount,
@@ -371,35 +409,37 @@ export async function runFullFraudCheck(
   const trafficLike = triggerType === "traffic_jam" || triggerType === "peak_hour_traffic";
   if (trafficLike && neighborCheck.score < 30) {
     const confidence = Math.max(60, 100 - neighborCheck.score);
+    const severity = confidence > 85 ? "High" : confidence > 60 ? "Medium" : "Low";
     await db.insert(fraudEvents).values({
       triggerEventId,
       userId,
-      fraudType: "NEIGHBOR_MISMATCH",
-      severity: confidence > 80 ? "high" : "medium",
+      fraudType: "CLUSTER_FRAUD",
+      severity,
       confidenceScore: confidence,
-      evidence: { triggerType, triggerValue, neighborScore: neighborCheck.score },
+      evidence: { triggerType, triggerValue, neighborScore: neighborCheck.score, reason: "No nearby workers corroborated this event" },
       clusterData: neighborCheck,
     });
     return {
       approved: false,
-      fraudType: "NEIGHBOR_MISMATCH",
+      fraudType: "CLUSTER_FRAUD",
       confidence,
       reason: "No nearby workers corroborated this traffic event",
     };
   }
 
   if (behaviorCheck.flagged && behaviorCheck.confidence > 65) {
+    const severity = behaviorCheck.confidence > 85 ? "High" : "Medium";
     await db.insert(fraudEvents).values({
       triggerEventId,
       userId,
-      fraudType: "BEHAVIOR_ANOMALY",
-      severity: "medium",
+      fraudType: "BEHAVIORAL_ANOMALY",
+      severity,
       confidenceScore: behaviorCheck.confidence,
-      evidence: behaviorCheck.evidence,
+      evidence: { ...behaviorCheck.evidence, reason: behaviorCheck.reason },
     });
     return {
       approved: false,
-      fraudType: "BEHAVIOR_ANOMALY",
+      fraudType: "BEHAVIORAL_ANOMALY",
       confidence: behaviorCheck.confidence,
       reason: behaviorCheck.reason,
     };

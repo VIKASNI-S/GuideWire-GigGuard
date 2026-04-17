@@ -75,6 +75,8 @@ router.get("/auth/me", requireAdminAuth, async (req: Request, res: Response) => 
 
 router.use(requireAdminAuth);
 
+import { updateTrustScore } from "../services/trustService";
+
 router.get("/overview", async (_req: Request, res: Response) => {
   const db = requireDb();
   const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
@@ -89,8 +91,12 @@ router.get("/overview", async (_req: Request, res: Response) => {
     .where(gte(payouts.createdAt, weekAgo));
   const [fraudWeek] = await db
     .select({ c: sql<number>`count(*)::int` })
+    .from(fraudEvents)
+    .where(gte(fraudEvents.createdAt, weekAgo));
+  const [totalClaimsWeek] = await db
+    .select({ c: sql<number>`count(*)::int` })
     .from(triggerEvents)
-    .where(and(eq(triggerEvents.isFraudFlagged, true), gte(triggerEvents.triggeredAt, weekAgo)));
+    .where(gte(triggerEvents.triggeredAt, weekAgo));
   const [premiumWeek] = await db
     .select({ total: sql<number>`coalesce(sum(${policies.weeklyPremium}::numeric),0)` })
     .from(policies)
@@ -115,15 +121,21 @@ router.get("/overview", async (_req: Request, res: Response) => {
   const payoutsVal = asNum(payoutsWeek?.total);
   const premiumVal = asNum(premiumWeek?.total);
   const lossRatio = premiumVal > 0 ? (payoutsVal / premiumVal) * 100 : 0;
+  const fraudRate = asNum(totalClaimsWeek?.c) > 0 ? (asNum(fraudWeek?.c) / asNum(totalClaimsWeek?.c)) * 100 : 0;
+  const avgPayoutPerUser = asNum(workersC?.c) > 0 ? (payoutsVal / asNum(workersC?.c)) : 0;
+
   res.json({
     kpis: {
       totalActiveWorkers: asNum(workersC?.c),
       activePoliciesThisWeek: asNum(activePoliciesC?.c),
       totalPayoutsThisWeek: payoutsVal,
       fraudFlagsThisWeek: asNum(fraudWeek?.c),
+      avgPayoutPerUser,
     },
     lossRatio,
-    lossRatioHealth: lossRatio < 60 ? "Healthy" : lossRatio <= 80 ? "Caution" : "Critical",
+    fraudRate,
+    lossRatioHealth: lossRatio < 70 ? "Healthy" : lossRatio <= 85 ? "Caution" : "Critical",
+    enrollmentStatus: lossRatio > 85 ? "Paused" : "Active",
     payoutsTrend: trend,
     triggerDistribution: triggerDist,
   });
@@ -416,7 +428,7 @@ router.post("/fraud-alerts/:id/approve", async (req: Request, res: Response) => 
   const db = requireDb();
   const alertId = String(req.params.id);
   const [alert] = await db
-    .select({ triggerEventId: fraudEvents.triggerEventId })
+    .select({ triggerEventId: fraudEvents.triggerEventId, userId: fraudEvents.userId })
     .from(fraudEvents)
     .where(eq(fraudEvents.id, alertId))
     .limit(1);
@@ -425,6 +437,10 @@ router.post("/fraud-alerts/:id/approve", async (req: Request, res: Response) => 
       .update(payouts)
       .set({ status: "credited", creditedAt: new Date(), transactionId: `ADM-${Date.now()}` })
       .where(eq(payouts.triggerEventId, alert.triggerEventId));
+    
+    if (alert.userId) {
+      await updateTrustScore(db, alert.userId, 5, 'Valid claim confirmed by admin review');
+    }
   }
   await db
     .update(fraudEvents)
@@ -437,7 +453,7 @@ router.post("/fraud-alerts/:id/reject", async (req: Request, res: Response) => {
   const db = requireDb();
   const alertId = String(req.params.id);
   const [alert] = await db
-    .select({ triggerEventId: fraudEvents.triggerEventId })
+    .select({ triggerEventId: fraudEvents.triggerEventId, userId: fraudEvents.userId })
     .from(fraudEvents)
     .where(eq(fraudEvents.id, alertId))
     .limit(1);
@@ -446,6 +462,10 @@ router.post("/fraud-alerts/:id/reject", async (req: Request, res: Response) => {
       .update(payouts)
       .set({ status: "failed", transactionId: null })
       .where(eq(payouts.triggerEventId, alert.triggerEventId));
+
+    if (alert.userId) {
+      await updateTrustScore(db, alert.userId, -20, 'Fraud verification confirmed by admin');
+    }
   }
   await db
     .update(fraudEvents)

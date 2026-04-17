@@ -37,7 +37,7 @@ app.use("/api/payout", payoutRoutes);
 app.use("/api/risk", riskRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/trigger", triggerRoutes);
-app.use("/api/demo", demoRoutes);
+app.use("/api/demo", mockRoutes);
 app.use("/api/ml", mlRoutes);
 app.use("/api/mock", mockRoutes);
 

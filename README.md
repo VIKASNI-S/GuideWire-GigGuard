@@ -1,141 +1,123 @@
-# Phoeraksha
+# 🛡️ GigGuard / Pheoraksha
 
-AI-powered parametric income protection for India’s gig delivery workforce. The stack is **React + Vite** (frontend), **Express + TypeScript + Drizzle** (backend), **PostgreSQL (Neon)**, and a **Python FastAPI** ML service (Random Forest premium multiplier + risk scores).
+**AI-powered parametric income protection for India’s gig delivery workforce.**
 
-## Ports
-
-| Service     | Port |
-|------------|------|
-| Frontend   | 3000 |
-| Backend API | 5000 |
-| ML service | 8000 |
+GigGuard is a state-of-the-art insurance platform designed to protect gig workers from income loss due to adverse weather, traffic congestion, and other environmental factors. It leverages a modern tech stack and machine learning to provide real-time risk assessment and automated payouts.
 
 ---
 
-## Setup & configuration guide
+## 🚀 Tech Stack
 
-### 1. OpenWeatherMap API key (free)
+-   **Frontend**: React 18 + Vite (configured for port 3000)
+-   **Backend**: Express + TypeScript + Drizzle ORM (configured for port 5000)
+-   **ML Service**: Python FastAPI + scikit-learn (configured for port 8000)
+-   **Database**: PostgreSQL (Optimized for Neon)
 
-1. Create an account at [https://openweathermap.org/api](https://openweathermap.org/api).
-2. Under **API keys**, generate a key (activation can take up to a few hours on a new account).
-3. Use these endpoints from the backend:
-   - Current weather: `https://api.openweathermap.org/data/2.5/weather` (`lat`, `lon`, `units=metric`, `appid=<key>`).
-   - Air pollution: `https://api.openweathermap.org/data/2.5/air_pollution` (`lat`, `lon`, `appid=<key>`).
-4. Put the key in **`backend/.env`** as `OPENWEATHER_API_KEY=...`.
+---
 
-If the key is missing, the backend uses **mock weather** so local development still runs.
+## 🛠️ Prerequisites
 
-### 2. TomTom API key (free developer tier)
+Before you begin, ensure you have the following installed:
+- [Node.js](https://nodejs.org/) (v18 or higher)
+- [Python](https://www.python.org/) (v3.9 or higher)
+- [PostgreSQL](https://www.postgresql.org/) (or a Neon.tech account)
+- [npm](https://www.npmjs.com/) or [yarn](https://yarnpkg.com/)
 
-1. Sign up at [https://developer.tomtom.com/](https://developer.tomtom.com/).
-2. Create a project and enable **Traffic API** (Flow Segment Data is used).
-3. Flow Segment Data URL used in code:  
-   `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json?point={lat},{lon}&key=<KEY>`
-4. Put the key in **`backend/.env`** as `TOMTOM_API_KEY=...`.
+---
 
-Optional: **`frontend/.env`** can expose `VITE_TOMTOM_API_KEY` if you add TomTom map tiles later.
+## ⚙️ Project Configuration
 
-If the key is missing, the backend uses **mock traffic** (moderate congestion).
+The project requires several environment variables to function properly. You should create `.env` files in each service directory.
 
-### 3. Neon PostgreSQL
+### 1. External API Keys
+1.  **OpenWeatherMap**: Sign up at [openweathermap.org](https://openweathermap.org/api) to get a free API key for weather data.
+2.  **TomTom Traffic**: Sign up at [developer.tomtom.com](https://developer.tomtom.com/) to get a free API key for traffic flow data.
 
-1. Create a project at [https://neon.tech](https://neon.tech).
-2. Copy the connection string (include `?sslmode=require`).
-3. Set **`backend/.env`**: `DATABASE_URL=postgresql://...`
+### 2. Environment Variables Mapping
 
-### 4. Where to put each secret
+| Service | File | Key | Description |
+| :--- | :--- | :--- | :--- |
+| **Backend** | `backend/.env` | `DATABASE_URL` | PostgreSQL connection string |
+| | | `JWT_SECRET` | Secret for signing auth tokens |
+| | | `OPENWEATHER_API_KEY` | Your OpenWeatherMap key |
+| | | `TOMTOM_API_KEY` | Your TomTom Traffic key |
+| | | `ML_SERVICE_URL` | URL of the ML service (default: `http://localhost:8000`) |
+| | | `DEMO_MODE` | `true` for lower thresholds (testing), `false` for prod |
+| **Frontend**| `frontend/.env` | `VITE_API_URL` | URL of the backend API (default: `http://localhost:5000`) |
+| | | `VITE_TOMTOM_API_KEY`| (Optional) TomTom key for map tiles |
+| **ML Service**| `ml-service/.env`| `PORT` | Port for the FastAPI service (default: `8000`) |
 
-| Value | File |
-|-------|------|
-| Database URL | `backend/.env` → `DATABASE_URL` |
-| Demo thresholds | `backend/.env` → `DEMO_MODE` (`true` = lowered Chennai-friendly triggers; `false` = production) |
-| JWT signing secret | `backend/.env` → `JWT_SECRET` |
-| OpenWeather key | `backend/.env` → `OPENWEATHER_API_KEY` |
-| TomTom key | `backend/.env` → `TOMTOM_API_KEY` |
-| ML service URL | `backend/.env` → `ML_SERVICE_URL` (default `http://localhost:8000`) |
-| Frontend API base | `frontend/.env` → `VITE_API_URL` (default `http://localhost:5000`) |
-| CORS origin | `backend/.env` → `FRONTEND_ORIGIN` (default `http://localhost:3000`) |
+---
 
-Copy from each `**/.env.example`** file.
+## 🏃 Local Setup Instructions
 
-### 5. Install and run
+Follow these steps in order to get the full solution running:
 
-**Backend**
-
+### Step 1: Backend Setup
 ```bash
 cd backend
 npm install
 cp .env.example .env
-# Edit .env (DATABASE_URL, JWT_SECRET, API keys)
-npx drizzle-kit push
-npm run db:seed
-npm run dev
+# 📝 Update .env with your DATABASE_URL and API keys
+npm run db:push          # Initialize database schema
+npm run db:seed          # (Optional) Seed the database with demo data
+npm run dev              # Starts backend on http://localhost:5000
 ```
 
-**ML service**
-
+### Step 2: ML Service Setup
 ```bash
 cd ml-service
 python -m venv .venv
-.venv\Scripts\activate   # Windows
+# Windows:
+.venv\Scripts\activate
+# macOS/Linux:
+source .venv/bin/activate
+
 pip install -r requirements.txt
-cp .env.example .env
+cp .env.example .env     # Update if you need a different port
 uvicorn main:app --reload --port 8000
 ```
+> **Note:** On the first run, the service will automatically train the `risk_model.joblib` if it's missing.
 
-On first start, if `model/risk_model.joblib` is missing, training runs automatically.
-
-**Frontend**
-
+### Step 3: Frontend Setup
 ```bash
 cd frontend
 npm install
 cp .env.example .env
-npm run dev
-```
-
-Vite is configured for **port 3000**.
-
-### 6. Database migrations
-
-- **Push schema (dev / Neon):** `cd backend && npx drizzle-kit push`
-- **Generate SQL migrations (optional):** `npm run db:generate` then apply with your migration process.
-
-### 7. Manual / demo trigger testing
-
-- **Cron:** auto-trigger runs every **10 minutes** when the API process is up.
-- **Immediate check (logged-in user):** `POST /api/trigger/manual-check` with an active policy.
-- **Demo (logged-in user):**
-  - `POST /api/demo/simulate-rain` — optional body: `{ "rainfallMm": 55 }`
-  - `POST /api/demo/simulate-heatwave` — optional: `{ "tempC": 46 }`
-  - `POST /api/demo/simulate-traffic` — optional: `{ "congestion": 0.9 }`
-
-The dashboard includes **Demo mode** buttons that call these endpoints.
-
-### 8. End-to-end flow
-
-1. Sign up → JWT is set in an **httpOnly** cookie.
-2. Choose a plan on `/plans` → creates a **7-day** policy with **ML-adjusted** premium.
-3. Cron or demo endpoints evaluate weather + traffic + plan thresholds → **trigger events** and **payouts** (mock payment with ~95% success).
-
----
-
-## Project layout
-
-```
-phoeraksha/
-├── frontend/     # React 18 + Vite + Tailwind + Leaflet + Recharts
-├── backend/      # Express + Drizzle + node-cron
-├── ml-service/   # FastAPI + scikit-learn
-└── README.md
+# 📝 Update .env if your backend is not on localhost:5000
+npm run dev              # Starts frontend on http://localhost:3000
 ```
 
 ---
 
-## Security notes (MVP)
+## 🧪 Testing & Simulation
 
-- Passwords hashed with **bcryptjs** (12 rounds).
-- JWT expiry: **7 days** (login “Remember me” extends cookie max-age).
-- Demo and manual trigger routes require an **authenticated** session.
+GigGuard includes built-in tools to test the parametric triggers and fraud detection:
 
+-   **Manual Triggers**: Logged-in users can use the **Demo Mode** panel in the dashboard to simulate heavy rain, heatwaves, or traffic congestion.
+-   **Automated Checks**: A cron job runs every 10 minutes in the backend to check active policies against real-time data.
+-   **Fraud Detection**: The system includes GPS spoofing detection and activity verification. See `FRAUD_TESTING.md` for detailed testing scenarios.
 
+---
+
+## 📁 Project Structure
+
+```text
+GuideWire-GigGuard/
+├── backend/       # Express API, Drizzle Schema, Cron Jobs
+├── frontend/      # React App, Dashboard, Dashboards
+├── ml-service/    # FastAPI, Risk Models, Premium Prediction
+└── ...            # Config & Documentation
+```
+
+---
+
+## 🔒 Security Summary
+-   **Passwords**: Hashed using `bcryptjs` (12 rounds).
+-   **Authentication**: JWT-based session management with `httpOnly` cookies.
+-   **Validation**: Schema validation via `zod` for all API inputs.
+
+---
+
+### 💡 Need Help?
+If you encounter `connection refused` errors, ensure all three services are running and the ports match your `.env` configuration.

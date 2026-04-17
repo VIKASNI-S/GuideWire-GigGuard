@@ -310,14 +310,18 @@ export function DashboardPage() {
 
             <div className="grid lg:grid-cols-2 gap-4">
               <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-900">Live risk level</h3>
-                <div className="mt-4 flex items-center gap-3">
-                  <span className="text-3xl">
-                    {riskLevel === "Low" ? "" : riskLevel === "Medium" ? "" : ""}
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-900">Live risk level</h3>
+                  <span className={`px-2 py-1 rounded text-xs font-bold ${
+                    riskLevel === "Low" ? "bg-emerald-100 text-emerald-800" : 
+                    riskLevel === "Medium" ? "bg-amber-100 text-amber-800" : "bg-rose-100 text-rose-800"
+                  }`}>
+                    {riskLevel} Risk
                   </span>
+                </div>
+                <div className="flex items-center gap-3">
                   <div className="flex-1">
-                    <p className="text-sm font-medium text-slate-800">{riskLevel}</p>
-                    <div className="h-2 mt-2 rounded-full bg-slate-100">
+                    <div className="h-2 rounded-full bg-slate-100">
                       <div
                         className={`h-full rounded-full ${
                           riskLevel === "Low"
@@ -328,16 +332,27 @@ export function DashboardPage() {
                         }`}
                       />
                     </div>
-                    <p className="text-xs text-slate-500 mt-1">
-                      Environmental risk score:{" "}
-                      {riskLive?.environmentalRiskScore.toFixed(0) ?? "—"}/100
-                    </p>
+                    <div className="mt-4 grid grid-cols-2 gap-2 text-[10px] uppercase font-bold text-slate-400">
+                      <div>Environmental: {scores?.environmental ?? 0}%</div>
+                      <div>Behavioral: {scores?.behavior ?? 0}%</div>
+                      <div>Location: {scores?.location ?? 0}%</div>
+                      <div>Activity: {scores?.activity ?? 0}%</div>
+                    </div>
                   </div>
+                </div>
+                <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
+                  <p className="text-xs text-slate-600 leading-relaxed">
+                    <span className="font-bold text-slate-900">Why {riskLevel}?</span>{" "}
+                    {riskLevel === "Low" && "All environmental parameters and worker signals are within normal operating ranges."}
+                    {riskLevel === "Medium" && "Moderate weather disruption or traffic congestion detected in your delivery zone."}
+                    {riskLevel === "High" && "Critical environmental event detected. Activity drop verification in progress."}
+                  </p>
                 </div>
               </div>
               <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-900">Real-time trigger progress</h3>
-                <div className="mt-4 space-y-3 text-sm">
+                <h3 className="font-semibold text-slate-900 mb-1">Trigger logic</h3>
+                <p className="text-[10px] text-slate-500 mb-3 uppercase tracking-tighter">Automatic Verification Pipeline</p>
+                <div className="space-y-3 text-sm">
                   {[
                     {
                       label: "Rainfall",
@@ -372,7 +387,7 @@ export function DashboardPage() {
                         <div className="flex justify-between">
                           <span className="text-slate-600">{r.label}</span>
                           <span className="font-medium text-slate-900">
-                            {r.value.toFixed(1)}{r.unit} / {r.threshold}{r.unit} ({pct}%)
+                            {r.value.toFixed(1)}{r.unit} / {r.threshold}{r.unit}
                           </span>
                         </div>
                         <div className="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden">
@@ -384,128 +399,222 @@ export function DashboardPage() {
                       </div>
                     );
                   })}
-                  <div className="pt-2 text-xs text-slate-500">
-                    Location: {profile?.city} <span className="text-emerald-600">Verified ✓</span>
+                  <div className="pt-2 flex items-center justify-between border-t border-slate-50">
+                    <span className="text-xs font-bold text-slate-400 uppercase">Verification Rules</span>
+                    <div className="flex gap-1">
+                      <span className="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 text-[9px] rounded font-bold border border-emerald-100">GPS OK</span>
+                      <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-700 text-[9px] rounded font-bold border border-indigo-100">ACTIVITY SCAN</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
+            <div className="bg-emerald-900 rounded-xl p-6 text-white shadow-xl relative overflow-hidden">
+              <div className="relative z-10">
+                <h3 className="text-lg font-bold flex items-center gap-2">
+                  <i className="fa-solid fa-robot"></i> GigGuard Explainability
+                </h3>
+                <p className="text-emerald-100 text-sm mt-1 mb-4 opacity-80">
+                  Transparency on why triggers occur and final payout decisions.
+                </p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-emerald-950/40 rounded-lg p-4 border border-emerald-500/20">
+                    <h4 className="text-xs font-bold uppercase text-emerald-400 mb-2">How it works</h4>
+                    <ul className="text-xs space-y-2 text-emerald-50/80">
+                      <li className="flex gap-2">
+                        <span className="text-emerald-400 font-bold">1.</span>
+                        Environment threshold is met (Weather/Traffic)
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-emerald-400 font-bold">2.</span>
+                        Worker activity drop is verified (&lt; 60% of avg)
+                      </li>
+                      <li className="flex gap-2">
+                        <span className="text-emerald-400 font-bold">3.</span>
+                        GPS & Fraud checks pass automatically
+                      </li>
+                    </ul>
+                  </div>
+                  <div className="bg-white/10 rounded-lg p-4 backdrop-blur-sm border border-white/10">
+                    <h4 className="text-xs font-bold uppercase text-white/60 mb-2">Latest Decision Status</h4>
+                    {history[0] ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-medium">Final Decision</span>
+                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                             history[0].status === "credited" ? "bg-emerald-500 text-white" : "bg-amber-500 text-white"
+                          }`}>
+                            {history[0].status === "credited" ? "PAYOUT APPROVED" : "IN REVIEW"}
+                          </span>
+                        </div>
+                        <p className="text-[10px] text-emerald-100 line-clamp-2 italic leading-relaxed whitespace-pre-line">
+                          {history[0].reason}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs text-white/40 italic">Waiting for first trigger...</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-3xl"></div>
+            </div>
+
             <LiveConditionsMonitor />
 
-            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-              <h3 className="font-semibold text-slate-900 mb-4">AI risk analysis</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart data={radarData}>
-                    <PolarGrid />
-                    <PolarAngleAxis dataKey="subject" />
-                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                    <Radar
-                      name="Score"
-                      dataKey="A"
-                      stroke="#14b8a6"
-                      fill="#14b8a6"
-                      fillOpacity={0.3}
-                    />
-                  </RadarChart>
-                </ResponsiveContainer>
+            <div className="grid lg:grid-cols-2 gap-4">
+              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-semibold text-slate-900">AI risk analysis</h3>
+                  <div className="flex gap-2">
+                     <div className="text-[10px] flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-teal-500"></span> Current</div>
+                  </div>
+                </div>
+                <div className="h-64">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RadarChart data={radarData}>
+                      <PolarGrid stroke="#f1f5f9" />
+                      <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 600 }} />
+                      <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+                      <Radar
+                        name="Score"
+                        dataKey="A"
+                        stroke="#0d9488"
+                        strokeWidth={2}
+                        fill="#14b8a6"
+                        fillOpacity={0.4}
+                      />
+                    </RadarChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="mt-2 text-[10px] text-slate-500 leading-relaxed text-center px-4">
+                  The radar reflects 5 core dimensions. Environmental triggers are prioritized, while behavior and trust influence your ML-adjusted premium.
+                </div>
+              </div>
+              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+                <h3 className="font-semibold text-slate-900 mb-3">Live coverage map</h3>
+                <RiskMap
+                  lat={lat}
+                  lon={lon}
+                  riskLevel={riskLevel}
+                  label={profile?.fullName ?? "Rider"}
+                  planName={plan.name}
+                />
               </div>
             </div>
 
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-              <h3 className="font-semibold text-slate-900 mb-3">Your area</h3>
-              <RiskMap
-                lat={lat}
-                lon={lon}
-                riskLevel={riskLevel}
-                label={profile?.fullName ?? "Rider"}
-                planName={plan.name}
-              />
-            </div>
-
-            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100 overflow-x-auto">
-              <h3 className="font-semibold text-slate-900 mb-4">Payout history</h3>
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-slate-500 border-b">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Trigger</th>
-                    <th className="py-2 pr-4">Amount</th>
-                    <th className="py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h) => (
-                    <tr key={h.id} className="border-b border-slate-100">
-                      <td className="py-2 pr-4 whitespace-nowrap">
-                        {h.createdAt
-                          ? new Date(h.createdAt).toLocaleString()
-                          : "—"}
-                      </td>
-                      <td className="py-2 pr-4">{h.reason ?? "—"}</td>
-                      <td className="py-2 pr-4">₹{h.amount ?? "—"}</td>
-                      <td className="py-2">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            h.status === "credited"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : h.status === "Under Review"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {h.status ?? "—"}
-                        </span>
-                      </td>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-900">Payout history</h3>
+                <button className="text-xs font-bold text-teal-600 hover:text-teal-700">View All</button>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-slate-500 border-b border-slate-100">
+                      <th className="pb-3 pr-4 font-semibold uppercase text-[10px]">Date</th>
+                      <th className="pb-3 pr-4 font-semibold uppercase text-[10px]">Explainability / Reason</th>
+                      <th className="pb-3 pr-4 font-semibold uppercase text-[10px]">Amount</th>
+                      <th className="pb-3 font-semibold uppercase text-[10px]">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50">
+                    {history.length === 0 && (
+                      <tr><td colSpan={4} className="py-8 text-center text-slate-400 italic">No payouts yet. Your income is protected.</td></tr>
+                    )}
+                    {history.map((h) => (
+                      <tr key={h.id} className="hover:bg-slate-50/50 transition-colors">
+                        <td className="py-4 pr-4 whitespace-nowrap text-slate-600 text-[11px]">
+                          {h.createdAt
+                            ? new Date(h.createdAt).toLocaleDateString() + ' ' + new Date(h.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                            : "—"}
+                        </td>
+                        <td className="py-4 pr-4">
+                           <div className="text-xs font-medium text-slate-900 mb-1">Trigger Event Detected</div>
+                           <div className="text-[10px] text-slate-500 leading-snug whitespace-pre-line bg-slate-50 p-2 rounded border border-slate-100 max-w-sm">
+                             {h.reason ?? "Environmental threshold met. Normal verification."}
+                           </div>
+                        </td>
+                        <td className="py-4 pr-4 font-bold text-slate-900 whitespace-nowrap">₹{Number(h.amount).toFixed(0)}</td>
+                        <td className="py-4 whitespace-nowrap">
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider shadow-sm ${
+                              h.status === "credited"
+                                ? "bg-emerald-500 text-white"
+                                : h.status === "Under Review" || h.status === "fraud_held"
+                                  ? "bg-amber-500 text-white"
+                                  : "bg-slate-400 text-white"
+                            }`}
+                          >
+                            {h.status === "fraud_held" ? "Under Review" : (h.status ?? "Processing")}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-4 items-start">
               <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-900 mb-4">Threshold details</h3>
-                <div className="h-64">
-                  <p className="text-sm text-slate-600">
-                    Toggle below to compare demo and production thresholds.
-                  </p>
+                <h3 className="font-semibold text-slate-900 mb-4">Coverage Thresholds</h3>
+                <div className="space-y-4">
+                  <div className="p-3 bg-teal-50 rounded-lg border border-teal-100">
+                    <p className="text-xs font-bold text-teal-800 uppercase mb-1">{plan.name} Tier</p>
+                    <p className="text-[11px] text-teal-700 leading-relaxed">
+                      Your payout triggers automatically when environmental values exceed the thresholds defined below. 
+                      In {showDemoThresholds ? 'Simulation' : 'Production'} mode, these values are verified against 3-point triangulation.
+                    </p>
+                  </div>
+                  {realConditions && (showDemoThresholds ? realConditions.thresholds_demo : realConditions.thresholds_prod) && (
+                    <div className="grid grid-cols-2 gap-4">
+                      {Object.entries(showDemoThresholds ? realConditions.thresholds_demo! : realConditions.thresholds_prod!).map(([key, val]) => (
+                        <div key={key} className="border-l-2 border-teal-500 pl-3">
+                          <p className="text-[10px] text-slate-400 uppercase font-bold">{key}</p>
+                          <p className="text-lg font-bold text-slate-800">{val}{key === 'rain' ? 'mm' : key === 'heat' ? '°C' : ''}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
-              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100/50">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
-                  <h3 className="font-semibold text-slate-900"> Demo mode</h3>
+                  <h3 className="font-semibold text-slate-900 flex items-center gap-1.5">
+                    <span className={`w-2 h-2 rounded-full ${demoMode ? 'bg-amber-500 animate-pulse' : 'bg-slate-300'}`}></span>
+                    System Mode
+                  </h3>
                   <p className="text-xs text-slate-500 mt-1">
-                    Server{" "}
-                    <code className="bg-slate-100 px-1 rounded">DEMO_MODE</code>:{" "}
-                    {realConditions?.demoMode ? (
-                      <span className="text-emerald-600 font-medium">ON</span>
+                    Environment:{" "}
+                    {demoMode ? (
+                      <span className="text-emerald-600 font-bold">SIMULATION ACTIVE</span>
                     ) : (
-                      <span className="text-slate-600 font-medium">OFF</span>
+                      <span className="text-slate-600 font-bold">LIVE PRODUCTION</span>
                     )}{" "}
                   </p>
                 </div>
                 <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
-                  <span className="font-medium">Threshold view</span>
+                  <span className="text-[10px] font-bold uppercase text-slate-400">View Mode</span>
                   <button
                     type="button"
                     role="switch"
                     aria-checked={showDemoThresholds}
                     onClick={() => setShowDemoThresholds((v) => !v)}
-                    className={`relative inline-flex h-7 w-12 shrink-0 rounded-full transition-colors ${
+                    className={`relative inline-flex h-6 w-10 shrink-0 rounded-full transition-colors ${
                       showDemoThresholds ? "bg-teal-500" : "bg-slate-300"
                     }`}
                   >
                     <span
-                      className={`inline-block h-6 w-6 mt-0.5 ml-0.5 rounded-full bg-white shadow transition-transform ${
-                        showDemoThresholds ? "translate-x-5" : "translate-x-0"
+                      className={`inline-block h-5 w-5 mt-0.5 ml-0.5 rounded-full bg-white shadow transition-transform ${
+                        showDemoThresholds ? "translate-x-4" : "translate-x-0"
                       }`}
                     />
                   </button>
-                  <span className="text-xs text-slate-500 w-28">
-                    {showDemoThresholds ? "Demo ON" : "Prod ON"}
+                  <span className="text-[10px] font-bold text-slate-600 w-12 text-center bg-slate-100 rounded py-1 border border-slate-200">
+                    {showDemoThresholds ? "TEST" : "PROD"}
                   </span>
                 </label>
               </div>
@@ -514,13 +623,9 @@ export function DashboardPage() {
                 (showDemoThresholds
                   ? realConditions.thresholds_demo
                   : realConditions.thresholds_prod) && (
-                  <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50/60 p-4 text-sm space-y-2">
-                    <p className="text-xs font-semibold text-teal-900 uppercase tracking-wide">
-                      Real data vs{" "}
-                      {showDemoThresholds ? "demo" : "production"} thresholds
-                      {realConditions.planName
-                        ? ` · ${realConditions.planName}`
-                        : ""}
+                  <div className="mb-4 rounded-lg border border-teal-100 bg-teal-50/20 p-4 text-xs space-y-3">
+                    <p className="font-bold text-teal-900 uppercase tracking-wide border-b border-teal-100 pb-2">
+                       Verification Status ({showDemoThresholds ? "Sim" : "Live"})
                     </p>
                     {(() => {
                       const t = showDemoThresholds
@@ -528,57 +633,36 @@ export function DashboardPage() {
                         : realConditions.thresholds_prod;
                       if (!t) return null;
                       const heatMet = realConditions.temp >= t.heat;
-                      const trafficMet = realConditions.peakTrafficWouldFire;
-                      const aqiMet = realConditions.aqi > t.poorAqi;
+                      const trafficMet = realConditions.congestion >= t.congestion; // Simplified for speed
+                      const aqiMet = realConditions.aqi > t.aqi;
                       return (
                         <>
-                          <p className="text-slate-800">
-                            Heat triggers at {t.heat}°C (now:{" "}
-                            {realConditions.temp.toFixed(1)}°C){" "}
-                            {heatMet ?  (
-                                 <i className="fa-solid fa-circle-check text-emerald-600"></i>) : (
-                                  <i className="fa-solid fa-circle-xmark text-rose-600"></i>
-                                      )}
-                          </p>
-                          <p className="text-slate-800">
-                            Peak-hour traffic: &gt;
-                            {(t.peakCongestion * 100).toFixed(0)}% congestion during
-                            8–10 / 18–21 IST (now:{" "}
-                            {(realConditions.congestion * 100).toFixed(0)}%
-                            {realConditions.isPeakTrafficHour
-                              ? ", in peak window"
-                              : ", off-peak"}
-                            ) {trafficMet ? (
-                                 <i className="fa-solid fa-circle-check text-emerald-600"></i>) : (
-                                  <i className="fa-solid fa-circle-xmark text-rose-600"></i>
-                                      )}
-                          </p>
-                          <p className="text-slate-800">
-                            Poor-air tier: AQI &gt; {t.poorAqi} (now: ~
-                            {Math.round(realConditions.aqi)}) {aqiMet ? (
-                                 <i className="fa-solid fa-circle-check text-emerald-600"></i>) : (
-                                  <i className="fa-solid fa-circle-xmark text-rose-600"></i>
-                                      )}
-                          </p>
-                          <p className="text-xs text-slate-500 pt-1 border-t border-teal-100">
-                            Would fire (demo eval):{" "}
-                            {realConditions.triggers_in_demo_mode.length
-                              ? realConditions.triggers_in_demo_mode.join(", ")
-                              : "—"}{" "}
-                            · (prod eval):{" "}
-                            {realConditions.triggers_in_prod_mode.length
-                              ? realConditions.triggers_in_prod_mode.join(", ")
-                              : "—"}
-                          </p>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-600">Ambient Temperature</span>
+                            <span className={`font-bold ${heatMet ? 'text-rose-600' : 'text-slate-900'}`}>{realConditions.temp.toFixed(1)}°C {heatMet ? '✓' : '×'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-600">Air Quality Index</span>
+                            <span className={`font-bold ${aqiMet ? 'text-rose-600' : 'text-slate-900'}`}>{Math.round(realConditions.aqi)} AQI {aqiMet ? '✓' : '×'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-600">Traffic Congestion</span>
+                            <span className={`font-bold ${trafficMet ? 'text-rose-600' : 'text-slate-900'}`}>{(realConditions.congestion * 100).toFixed(0)}% {trafficMet ? '✓' : '×'}</span>
+                          </div>
+                          
+                          <div className="pt-2 text-[10px] text-slate-500 italic border-t border-teal-50/50">
+                            Current active triggers:{" "}
+                            <span className="text-teal-700 font-bold">
+                            {realConditions.triggers_that_would_fire.length
+                              ? realConditions.triggers_that_would_fire.join(", ")
+                              : "No thresholds exceeded"}{" "}
+                            </span>
+                          </div>
                         </>
                       );
                     })()}
                   </div>
                 )}
-
-                <p className="text-xs text-slate-500">
-                  Simulation controls moved to the unified Demo Mode panel below.
-                </p>
               </div>
             </div>
           </>

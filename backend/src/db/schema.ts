@@ -98,6 +98,8 @@ export const triggerEvents = pgTable("trigger_events", {
   triggeredAt: timestamp("triggered_at", { withTimezone: true }).defaultNow(),
   isFraudFlagged: boolean("is_fraud_flagged").default(false),
   fraudReason: text("fraud_reason"),
+  activityDrop: boolean("activity_drop").default(false),
+  activityValue: numeric("activity_value", { precision: 5, scale: 2 }),
 });
 
 export const payouts = pgTable("payouts", {
@@ -200,6 +202,15 @@ export const adminActions = pgTable("admin_actions", {
   actionType: varchar("action_type", { length: 50 }),
   targetUserId: uuid("target_user_id").references(() => users.id),
   details: jsonb("details"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const trustScoreHistory = pgTable("trust_score_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id),
+  prevScore: integer("prev_score"),
+  currentScore: integer("current_score"),
+  reason: varchar("reason", { length: 255 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

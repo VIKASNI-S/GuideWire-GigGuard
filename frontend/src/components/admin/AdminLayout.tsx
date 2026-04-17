@@ -2,12 +2,48 @@ import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "../../context/AdminAuthContext";
 
 const links = [
-  { to: "/admin/dashboard", label: "📊 Overview", end: true },
-  { to: "/admin/dashboard/workers", label: "👥 Workers" },
-  { to: "/admin/dashboard/map", label: "🗺️ Live Map" },
-  { to: "/admin/dashboard/fraud", label: "🚨 Fraud Alerts" },
-  { to: "/admin/dashboard/payouts", label: "💰 Payouts" },
-  { to: "/admin/dashboard/analytics", label: "📈 Analytics" },
+  {
+    to: "/admin/dashboard", label: (<>
+      <i className="fa-solid fa-chart-pie mr-2"></i>
+      Overview</>), end: true
+  },
+  {
+    to: "/admin/dashboard/workers", label:
+      <>
+        <i className="fa-solid fa-users mr-2 "></i>
+        Workers</>
+  },
+  {
+    to: "/admin/dashboard/map",
+    label: (
+      <>
+        <i className="fa-solid fa-map-location-dot mr-2"></i>
+        Live Map
+      </>
+    )
+  },
+  {
+    to: "/admin/dashboard/fraud",
+    label: (
+      <>
+        <i className="fa-solid fa-shield-halved mr-2"></i>
+        Fraud Alerts
+      </>
+    )
+  },
+  {
+    to: "/admin/dashboard/payouts",
+    label: (
+      <>
+        <i className="fa-solid fa-sack-dollar mr-2"></i>
+        Payouts
+      </>
+    )
+  },
+  {
+    to: "/admin/dashboard/analytics", label: <>
+      <i className="fa-solid fa-chart-line mr-2"></i> Analytics</>
+  },
 ];
 
 export function AdminLayout() {
@@ -27,10 +63,9 @@ export function AdminLayout() {
               to={l.to}
               end={l.end}
               className={({ isActive }) =>
-                `block rounded-md px-3 py-2 text-sm border-l-4 ${
-                  isActive
-                    ? "border-teal-400 bg-slate-800 text-teal-300"
-                    : "border-transparent hover:bg-slate-900"
+                `block rounded-md px-3 py-2 text-sm border-l-4 ${isActive
+                  ? "border-teal-400 bg-slate-800 text-teal-300"
+                  : "border-transparent hover:bg-slate-900"
                 }`
               }
             >

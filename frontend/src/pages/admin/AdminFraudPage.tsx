@@ -89,53 +89,126 @@ export function AdminFraudPage() {
       {items.map((a) => (
         <div
           key={a.id}
-          className={`rounded-xl bg-white p-4 border ${
-            a.fraudType === "GPS_SPOOFING"
-              ? "border-red-300"
-              : a.fraudType === "NEIGHBOR_MISMATCH"
-                ? "border-orange-300"
-                : a.fraudType === "BEHAVIOR_ANOMALY"
-                  ? "border-yellow-300"
-                  : "border-purple-300"
+          className={`rounded-xl bg-white p-5 border shadow-sm transition-all cursor-pointer ${
+            selected?.id === a.id ? "ring-2 ring-indigo-500 border-indigo-200" : "border-slate-100 hover:border-slate-300"
           }`}
           onClick={() => setSelected(a)}
         >
-          <div className="flex justify-between gap-3">
-            <p className="font-semibold">{a.fraudType}</p>
-            <span className="text-xs text-slate-500">{new Date(a.createdAt).toLocaleString()}</span>
+          <div className="flex justify-between items-start gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="font-bold text-slate-900">{a.fraudType?.replace(/_/g, " ")}</p>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                  a.severity === "High" ? "bg-red-100 text-red-700" : 
+                  a.severity === "Medium" ? "bg-amber-100 text-amber-700" : "bg-blue-100 text-blue-700"
+                }`}>
+                  {a.severity} Severity
+                </span>
+              </div>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {a.workerName} · {a.workerCity} · {new Date(a.createdAt).toLocaleString()}
+              </p>
+            </div>
+            <div className="text-right">
+              <p className="text-lg font-black text-rose-600">₹{a.payoutAmount ?? "0"}</p>
+              <p className="text-[10px] text-slate-400 uppercase font-bold">Held Amount</p>
+            </div>
           </div>
-          <p className="text-sm text-slate-800 mt-1">
-            {a.workerName} — {a.workerPlan} — {a.workerCity}
-          </p>
-          <p className="text-sm text-slate-600 mt-1">
-            Trigger: {a.triggerType} | Payout Held: ₹{a.payoutAmount ?? "0"}
-          </p>
-          <div className="mt-2 flex gap-2 text-xs">
-            <span className="rounded bg-amber-100 px-2 py-0.5">{a.severity}</span>
-            <span className="rounded bg-slate-100 px-2 py-0.5">{a.resolution}</span>
-            <span className="rounded bg-red-50 px-2 py-0.5">Confidence: {a.confidenceScore}%</span>
+
+          {/* Evidence Details */}
+          <div className="mt-4 grid md:grid-cols-2 gap-4">
+            <div className="bg-slate-50 rounded-lg p-3 border border-slate-100">
+               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Primary Evidence</p>
+               <div className="space-y-1.5">
+                 {a.fraudType === "GPS_SPOOFING" && a.evidence && (
+                   <>
+                     <div className="flex justify-between text-xs">
+                       <span className="text-slate-500">Distance Jump</span>
+                       <span className="font-bold text-slate-900">{(a.evidence as any).distanceJumpKm} km</span>
+                     </div>
+                     <div className="flex justify-between text-xs">
+                       <span className="text-slate-500">Time Interval</span>
+                       <span className="font-bold text-slate-900">{(a.evidence as any).timeDiffMins} mins</span>
+                     </div>
+                     <div className="flex justify-between text-xs">
+                       <span className="text-slate-500">Max Possible</span>
+                       <span className="font-bold text-slate-900">{(a.evidence as any).expectedMaxKm} km</span>
+                     </div>
+                   </>
+                 )}
+                 {a.fraudType === "CLUSTER_FRAUD" && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Nearby Support</span>
+                      <span className="font-bold text-slate-900 text-rose-600">0 workers found</span>
+                    </div>
+                 )}
+                 {a.fraudType === "BEHAVIORAL_ANOMALY" && a.evidence && (
+                    <div className="flex justify-between text-xs">
+                      <span className="text-slate-500">Recent Claims</span>
+                      <span className="font-bold text-slate-900">{(a.evidence as any).thisTypeCount} in 30d</span>
+                    </div>
+                 )}
+                 <p className="text-[10px] text-slate-500 italic mt-2 border-t border-slate-200 pt-2">
+                   Reason: {(a.evidence as any)?.reason ?? "Under standard review"}
+                 </p>
+               </div>
+            </div>
+            <div className="bg-indigo-50/50 rounded-lg p-3 border border-indigo-100/50">
+               <p className="text-[10px] font-bold text-indigo-400 uppercase mb-2">Automated Analysis</p>
+               <div className="space-y-1.5">
+                  <div className="flex justify-between text-xs">
+                    <span className="text-indigo-600">Confidence Score</span>
+                    <span className="font-black text-indigo-700">{a.confidenceScore}%</span>
+                  </div>
+                  <div className="flex justify-between text-xs">
+                    <span className="text-indigo-600">Decision Rule</span>
+                    <span className="text-slate-600 font-medium">Auto-Flag on {a.triggerType}</span>
+                  </div>
+                  <div className="mt-2 h-1.5 w-full bg-slate-200 rounded-full overflow-hidden">
+                    <div className="h-full bg-indigo-500 transition-all" style={{ width: `${a.confidenceScore}%` }}></div>
+                  </div>
+               </div>
+            </div>
           </div>
-          <div className="mt-3 flex gap-2">
-            <button
-              className="rounded bg-emerald-600 text-white px-3 py-1 text-xs"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await adminApi.post(`/api/admin/fraud-alerts/${a.id}/approve`);
-                await load();
-              }}
-            >
-              Approve Payout
-            </button>
-            <button
-              className="rounded bg-rose-600 text-white px-3 py-1 text-xs"
-              onClick={async (e) => {
-                e.stopPropagation();
-                await adminApi.post(`/api/admin/fraud-alerts/${a.id}/reject`);
-                await load();
-              }}
-            >
-              Reject & Penalize
-            </button>
+
+          <div className="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="flex gap-2">
+              {a.resolution === "pending" ? (
+                <>
+                  <button
+                    className="rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-xs font-bold transition-colors shadow-sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await adminApi.post(`/api/admin/fraud-alerts/${a.id}/approve`);
+                      toast.success("Payout Approved and Trust Score +5 for Worker");
+                      await load();
+                    }}
+                  >
+                    Approve Payout
+                  </button>
+                  <button
+                    className="rounded-lg bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 text-xs font-bold transition-colors shadow-sm"
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      await adminApi.post(`/api/admin/fraud-alerts/${a.id}/reject`);
+                      toast.error("Claim Rejected and Trust Score -20 for Worker");
+                      await load();
+                    }}
+                  >
+                    Reject & Penalize
+                  </button>
+                </>
+              ) : (
+                <span className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest ${
+                  a.resolution === "approved" ? "bg-emerald-100 text-emerald-700" : "bg-slate-100 text-slate-500"
+                }`}>
+                  {a.resolution}
+                </span>
+              )}
+            </div>
+            <div className="text-[10px] font-bold text-slate-400 uppercase">
+               Trigger ID: {a.id.slice(-8)}
+            </div>
           </div>
         </div>
       ))}

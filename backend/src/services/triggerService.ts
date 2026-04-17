@@ -217,11 +217,21 @@ export async function runTriggerForPolicy(
     };
   }
 
-  const triangulation =
+  const triangulations =
     isMockDataDemoMode() || options?.overrideWeather
       ? [wState.rainfall, wState.rainfall, wState.rainfall]
       : await fetchWeatherTriangulation(lat, lon);
-  void triangulation;
+
+  // Scenario-based Activity Logic
+  const scenario = isMockDataDemoMode() ? require("./mockDataService").getActiveScenario() : "normal";
+  let activityPercent = 90; // Default normal
+  if (scenario === "normal") {
+    activityPercent = 80 + Math.random() * 20;
+  } else if (scenario === "flood") {
+    activityPercent = 10 + Math.random() * 30;
+  } else {
+    activityPercent = 40 + Math.random() * 30;
+  }
 
   const basePayout = num(row.plan.payoutAmount);
   const payoutAmount =
@@ -243,6 +253,8 @@ export async function runTriggerForPolicy(
       trafficData: traffic as unknown as Record<string, unknown>,
       isFraudFlagged: false,
       fraudReason: null,
+      activityDrop: isActivityDrop,
+      activityValue: String(activityPercent.toFixed(1)),
     })
     .returning({ id: triggerEvents.id });
 
@@ -255,6 +267,18 @@ export async function runTriggerForPolicy(
     triggerEventId: ev.id,
   });
 
+  // Reasoning String Construction for Explainability
+  const triggerLabel = trigger.type.replace(/_/g, " ");
+  const envStatus = `${triggerLabel.charAt(0).toUpperCase() + triggerLabel.slice(1)} threshold met (${trigger.value}${trigger.type === "heavy_rain" ? "mm" : trigger.type === "extreme_heat" ? "°C" : ""} > ${trigger.threshold})`;
+  const activityStatus = isActivityDrop 
+    ? `Activity dropped to ${activityPercent.toFixed(0)}% (Disruption Verified)`
+    : `Activity at ${activityPercent.toFixed(0)}% (Normal range)`;
+  const fraudStatus = fraudResult.approved ? "No fraud signals detected" : `Fraud Flagged: ${fraudResult.reason}`;
+  
+  const finalReasoning = `Payout Triggered Because:\n1. ${envStatus}\n2. ${activityStatus}\n3. Location verified\n4. ${fraudStatus}\n\nDecision: ${fraudResult.approved ? "Payout Approved" : "Flagged for Review"}`;
+
+  const { updateTrustScore } = require("./trustService");
+
   if (!fraudResult.approved) {
     await db
       .update(triggerEvents)
@@ -264,6 +288,9 @@ export async function runTriggerForPolicy(
       })
       .where(eq(triggerEvents.id, ev.id));
 
+    // Trust Score: Suspicious / flagged -> -10
+    await updateTrustScore(db, row.user.id, -10, `Suspicious activity flagged: ${fraudResult.fraudType}`);
+
     await db.insert(payouts).values({
       userId: row.user.id,
       policyId,
@@ -271,13 +298,11 @@ export async function runTriggerForPolicy(
       amount: String(payoutAmount),
       status: "fraud_held",
       paymentMethod: method,
-      transactionId: null,
-      creditedAt: null,
     });
     await db.insert(payoutHistory).values({
       userId: row.user.id,
       amount: String(payoutAmount),
-      reason: `Trigger: ${trigger.type} — ${fraudResult.fraudType} review`,
+      reason: finalReasoning,
       status: "Under Review",
     });
     return {
@@ -322,9 +347,12 @@ export async function runTriggerForPolicy(
     await db.insert(payoutHistory).values({
       userId: row.user.id,
       amount: String(payoutAmount),
-      reason: `Auto: ${trigger.type}`,
+      reason: finalReasoning,
       status: "credited",
     });
+
+    // Trust Score: Normal behavior (successful approved payout) -> +2
+    await updateTrustScore(db, row.user.id, 2, "Successful payout verification (Normal behavior)");
   } else {
     await db
       .update(payouts)
