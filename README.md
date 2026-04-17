@@ -118,3 +118,7 @@ GuideWire-GigGuard/
 -   **Validation**: Schema validation via `zod` for all API inputs.
 
 ---
+
+## Admin Credentials
+- **Email**:admin@phoeraksha.com
+- **password**:Admin@123
