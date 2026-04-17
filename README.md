@@ -122,3 +122,6 @@ GuideWire-GigGuard/
 ## Admin Credentials
 - **Email**:admin@phoeraksha.com
 - **password**:Admin@123
+
+## PPT Link
+- https://canva.link/u0ultzy6a0ktad1
