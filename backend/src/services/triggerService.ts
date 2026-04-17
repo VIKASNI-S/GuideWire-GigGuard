@@ -12,14 +12,13 @@ import { fetchWeatherForCoords, fetchWeatherTriangulation } from "./weatherServi
 import { fetchTrafficForCoords } from "./trafficService";
 import { processPayment } from "./payoutService";
 import {
-  runFraudChecks,
+  runFullFraudCheck,
   countPayoutsInPolicyWeek,
   lastPayoutAt,
 } from "./fraudDetection";
 import {
   buildWeatherState,
   getISTHour,
-  getThresholdPack,
   isDemoModeEnv,
   pickTriggerDecision,
   type TriggerDecision,
@@ -218,25 +217,11 @@ export async function runTriggerForPolicy(
     };
   }
 
-  const tPack = getThresholdPack(row.plan, demo);
   const triangulation =
     isMockDataDemoMode() || options?.overrideWeather
       ? [wState.rainfall, wState.rainfall, wState.rainfall]
       : await fetchWeatherTriangulation(lat, lon);
-
-  const fraud = await runFraudChecks(db, {
-    userId: row.user.id,
-    policyId,
-    triggerType: trigger.type,
-    city: row.user.city,
-    userLat: lat,
-    userLon: lon,
-    claimedCityLat: lat,
-    claimedCityLon: lon,
-    rainfallTriangulation: triangulation,
-    userRainfall: wState.rainfall,
-    rainfallThreshold: tPack.rain,
-  });
+  void triangulation;
 
   const basePayout = num(row.plan.payoutAmount);
   const payoutAmount =
@@ -256,42 +241,29 @@ export async function runTriggerForPolicy(
       longitude: String(lon),
       weatherData: weather as unknown as Record<string, unknown>,
       trafficData: traffic as unknown as Record<string, unknown>,
-      isFraudFlagged: fraud.flagged,
-      fraudReason: fraud.reasons.join("; ") || null,
+      isFraudFlagged: false,
+      fraudReason: null,
     })
     .returning({ id: triggerEvents.id });
 
-  if (fraud.flagged && fraud.delayMinutes) {
-    await db.insert(payouts).values({
-      userId: row.user.id,
-      policyId,
-      triggerEventId: ev.id,
-      amount: String(payoutAmount),
-      status: "fraud_held",
-      paymentMethod: method,
-      transactionId: null,
-      creditedAt: null,
-    });
-    await db.insert(payoutHistory).values({
-      userId: row.user.id,
-      amount: String(payoutAmount),
-      reason: `Trigger: ${trigger.type} — Under Review`,
-      status: "Under Review",
-    });
-    console.log(
-      `[${new Date().toISOString()}] TRIGGER delayed mass event user=${row.user.id}`
-    );
-    return {
-      ok: true,
-      message: "Mass event — under review",
-      triggered: false,
-      reason: "fraud_delay",
-      amount: payoutAmount,
-      triggerType: trigger.type,
-    };
-  }
+  const fraudResult = await runFullFraudCheck(db, {
+    userId: row.user.id,
+    triggerType: trigger.type,
+    triggerValue: trigger.value,
+    lat,
+    lon,
+    triggerEventId: ev.id,
+  });
 
-  if (fraud.flagged) {
+  if (!fraudResult.approved) {
+    await db
+      .update(triggerEvents)
+      .set({
+        isFraudFlagged: true,
+        fraudReason: `${fraudResult.fraudType}: ${fraudResult.reason ?? "under review"}`,
+      })
+      .where(eq(triggerEvents.id, ev.id));
+
     await db.insert(payouts).values({
       userId: row.user.id,
       policyId,
@@ -305,17 +277,14 @@ export async function runTriggerForPolicy(
     await db.insert(payoutHistory).values({
       userId: row.user.id,
       amount: String(payoutAmount),
-      reason: `Trigger: ${trigger.type} — Under Review`,
+      reason: `Trigger: ${trigger.type} — ${fraudResult.fraudType} review`,
       status: "Under Review",
     });
-    console.log(
-      `[${new Date().toISOString()}] TRIGGER fraud user=${row.user.id} ${fraud.reasons.join(",")}`
-    );
     return {
       ok: true,
       message: "Fraud checks flagged — under review",
       triggered: false,
-      reason: "fraud",
+      reason: `fraud_${fraudResult.fraudType?.toLowerCase() ?? "check"}`,
       amount: payoutAmount,
       triggerType: trigger.type,
     };

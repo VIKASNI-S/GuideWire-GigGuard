@@ -9,6 +9,7 @@ import {
   text,
   jsonb,
   date,
+  index,
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
@@ -137,6 +138,71 @@ export const payoutHistory = pgTable("payout_history", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+export const locationPings = pgTable(
+  "location_pings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    latitude: numeric("latitude", { precision: 10, scale: 7 }).notNull(),
+    longitude: numeric("longitude", { precision: 10, scale: 7 }).notNull(),
+    accuracyMeters: integer("accuracy_meters"),
+    source: varchar("source", { length: 20 }).default("browser"),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => [
+    index("idx_location_pings_user_time").on(t.userId, t.recordedAt),
+    index("idx_location_pings_coords").on(t.latitude, t.longitude),
+  ]
+);
+
+export const admins = pgTable("admins", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: varchar("email", { length: 150 }).notNull().unique(),
+  passwordHash: varchar("password_hash", { length: 255 }).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  role: varchar("role", { length: 20 }).default("admin"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const fraudAlerts = pgTable("fraud_alerts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id),
+  alertType: varchar("alert_type", { length: 50 }).notNull(),
+  severity: varchar("severity", { length: 20 }).default("medium"),
+  description: text("description"),
+  evidence: jsonb("evidence"),
+  status: varchar("status", { length: 20 }).default("pending"),
+  reviewedBy: uuid("reviewed_by").references(() => admins.id),
+  reviewedAt: timestamp("reviewed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const fraudEvents = pgTable("fraud_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  triggerEventId: uuid("trigger_event_id").references(() => triggerEvents.id),
+  userId: uuid("user_id").references(() => users.id),
+  fraudType: varchar("fraud_type", { length: 50 }).notNull(),
+  severity: varchar("severity", { length: 20 }).default("medium"),
+  confidenceScore: integer("confidence_score").default(0),
+  evidence: jsonb("evidence").notNull(),
+  clusterData: jsonb("cluster_data"),
+  resolution: varchar("resolution", { length: 20 }).default("pending"),
+  resolvedBy: uuid("resolved_by").references(() => admins.id),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const adminActions = pgTable("admin_actions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  adminId: uuid("admin_id").references(() => admins.id),
+  actionType: varchar("action_type", { length: 50 }),
+  targetUserId: uuid("target_user_id").references(() => users.id),
+  details: jsonb("details"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   policies: many(policies),
   payouts: many(payouts),
@@ -152,3 +218,4 @@ export const policiesRelations = relations(policies, ({ one }) => ({
     references: [plans.id],
   }),
 }));
+

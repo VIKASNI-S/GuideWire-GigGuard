@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import toast from "react-hot-toast";
+import confetti from "canvas-confetti";
 import {
   Radar,
   RadarChart,
@@ -12,10 +13,9 @@ import {
 import { api } from "../services/api";
 import type { PayoutHistoryRow, PlanRow, PolicyRow, RiskScores } from "../types";
 import { RiskMap } from "../components/dashboard/RiskMap";
-import { TrustGauge } from "../components/dashboard/TrustGauge";
 import { LiveConditionsMonitor } from "../components/dashboard/LiveConditionsMonitor";
-import { PremiumFactorsCard } from "../components/dashboard/PremiumFactorsCard";
 import { DemoModePanel } from "../components/dashboard/DemoModePanel";
+import { WeatherAlertBanner } from "../components/dashboard/WeatherAlertBanner";
 import { useDemo } from "../context/DemoContext";
 
 type ThresholdPack = {
@@ -67,7 +67,6 @@ export function DashboardPage() {
   const [stats, setStats] = useState({ totalEarnedWeek: 0, triggersThisWeek: 0 });
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   const [loading, setLoading] = useState(true);
-  const [demoBusy, setDemoBusy] = useState<string | null>(null);
   const [realConditions, setRealConditions] = useState<RealConditions | null>(null);
   /** UI toggle: ON = show demo-style threshold lines; OFF = production threshold lines */
   const [showDemoThresholds, setShowDemoThresholds] = useState(true);
@@ -141,6 +140,7 @@ export function DashboardPage() {
         const m = r.match(/^Auto:\s*(.+)$/);
         const triggerLabel = m ? m[1].trim() : "payout";
         toast.success(`Auto-triggered! ${triggerLabel} detected 🎯`);
+        void confetti({ particleCount: 80, spread: 75, origin: { y: 0.7 } });
       }
       historyBootstrapped.current = true;
       if (newestId) lastHistId.current = newestId;
@@ -155,6 +155,33 @@ export function DashboardPage() {
     const id = setInterval(() => void load(), 5 * 60 * 1000);
     return () => clearInterval(id);
   }, [load]);
+
+  useEffect(() => {
+    const ping = async () => {
+      if (!navigator.geolocation) return;
+      navigator.geolocation.getCurrentPosition(
+        async (pos) => {
+          try {
+            await api.post("/api/user/location-ping", {
+              latitude: pos.coords.latitude,
+              longitude: pos.coords.longitude,
+              accuracyMeters: Math.round(pos.coords.accuracy),
+              source: "browser",
+            });
+          } catch {
+            /* ignore */
+          }
+        },
+        () => {
+          /* ignore */
+        },
+        { enableHighAccuracy: false, timeout: 6000, maximumAge: 60000 }
+      );
+    };
+    void ping();
+    const id = setInterval(() => void ping(), 5 * 60 * 1000);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const id = setInterval(() => void pollPayoutHistory(), 2 * 60 * 1000);
@@ -185,21 +212,6 @@ export function DashboardPage() {
     ? policy?.adjustedPremium ?? plan.weeklyPremium
     : "—";
 
-  async function runDemo(kind: "rain" | "heat" | "traffic") {
-    setDemoBusy(kind);
-    try {
-      if (kind === "rain") await api.post("/api/demo/simulate-rain", {});
-      if (kind === "heat") await api.post("/api/demo/simulate-heatwave", {});
-      if (kind === "traffic") await api.post("/api/demo/simulate-traffic", {});
-      toast.success("Demo trigger executed — check payout history");
-      await load();
-    } catch {
-      toast.error("Demo failed — ensure you have an active plan");
-    } finally {
-      setDemoBusy(null);
-    }
-  }
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -220,6 +232,7 @@ export function DashboardPage() {
             below)
           </div>
         )}
+        <WeatherAlertBanner />
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-2">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">
@@ -323,62 +336,81 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-900">Real-time data</h3>
-                <ul className="mt-4 space-y-2 text-sm">
-                  <li className="flex justify-between">
-                    <span className="text-slate-500">Rainfall (1h)</span>
-                    <span className="font-semibold text-sky-700">
-                      {riskLive?.weather?.rainfallMmLastHour != null
-                        ? riskLive.weather.rainfallMmLastHour.toFixed(1)
-                        : "—"}{" "}
-                      mm
-                    </span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-500">Activity</span>
-                    <span className="font-semibold text-emerald-600">Active</span>
-                  </li>
-                  <li className="flex justify-between">
-                    <span className="text-slate-500">Location</span>
-                    <span>
-                      {profile?.city}{" "}
-                      <span className="text-emerald-600 text-xs">Verified ✓</span>
-                    </span>
-                  </li>
-                </ul>
+                <h3 className="font-semibold text-slate-900">Real-time trigger progress</h3>
+                <div className="mt-4 space-y-3 text-sm">
+                  {[
+                    {
+                      label: "Rainfall",
+                      value: realConditions?.rainfall ?? riskLive?.weather?.rainfallMmLastHour ?? 0,
+                      threshold: showDemoThresholds
+                        ? (realConditions?.thresholds_demo?.rain ?? 30)
+                        : (realConditions?.thresholds_prod?.rain ?? 30),
+                      unit: "mm",
+                    },
+                    {
+                      label: "Temp",
+                      value: realConditions?.temp ?? 0,
+                      threshold: showDemoThresholds
+                        ? (realConditions?.thresholds_demo?.heat ?? 32)
+                        : (realConditions?.thresholds_prod?.heat ?? 42),
+                      unit: "°C",
+                    },
+                    {
+                      label: "AQI",
+                      value: realConditions?.aqi ?? 0,
+                      threshold: showDemoThresholds
+                        ? (realConditions?.thresholds_demo?.aqi ?? 80)
+                        : (realConditions?.thresholds_prod?.aqi ?? 300),
+                      unit: "",
+                    },
+                  ].map((r) => {
+                    const pct = Math.round((r.value / Math.max(1, r.threshold)) * 100);
+                    const bar =
+                      pct < 70 ? "bg-emerald-500" : pct < 90 ? "bg-amber-500" : "bg-red-500";
+                    return (
+                      <div key={r.label}>
+                        <div className="flex justify-between">
+                          <span className="text-slate-600">{r.label}</span>
+                          <span className="font-medium text-slate-900">
+                            {r.value.toFixed(1)}{r.unit} / {r.threshold}{r.unit} ({pct}%)
+                          </span>
+                        </div>
+                        <div className="mt-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                          <div
+                            className={`h-full ${bar} transition-all duration-500`}
+                            style={{ width: `${Math.min(100, pct)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                  <div className="pt-2 text-xs text-slate-500">
+                    Location: {profile?.city} <span className="text-emerald-600">Verified ✓</span>
+                  </div>
+                </div>
               </div>
             </div>
 
             <LiveConditionsMonitor />
 
-            <div className="grid lg:grid-cols-2 gap-4 items-start">
-              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
-                <h3 className="font-semibold text-slate-900 mb-4">AI risk analysis</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RadarChart data={radarData}>
-                      <PolarGrid />
-                      <PolarAngleAxis dataKey="subject" />
-                      <PolarRadiusAxis angle={30} domain={[0, 100]} />
-                      <Radar
-                        name="Score"
-                        dataKey="A"
-                        stroke="#14b8a6"
-                        fill="#14b8a6"
-                        fillOpacity={0.3}
-                      />
-                    </RadarChart>
-                  </ResponsiveContainer>
-                </div>
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+              <h3 className="font-semibold text-slate-900 mb-4">AI risk analysis</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RadarChart data={radarData}>
+                    <PolarGrid />
+                    <PolarAngleAxis dataKey="subject" />
+                    <PolarRadiusAxis angle={30} domain={[0, 100]} />
+                    <Radar
+                      name="Score"
+                      dataKey="A"
+                      stroke="#14b8a6"
+                      fill="#14b8a6"
+                      fillOpacity={0.3}
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
               </div>
-              <PremiumFactorsCard />
-            </div>
-
-            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100 max-w-md mx-auto lg:max-w-none">
-              <h3 className="font-semibold text-slate-900 mb-4 text-center">
-                Trust score
-              </h3>
-              <TrustGauge value={profile?.trustScore ?? 82} />
             </div>
 
             <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
@@ -392,7 +424,56 @@ export function DashboardPage() {
               />
             </div>
 
-            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100 overflow-x-auto">
+              <h3 className="font-semibold text-slate-900 mb-4">Payout history</h3>
+              <table className="min-w-full text-sm">
+                <thead>
+                  <tr className="text-left text-slate-500 border-b">
+                    <th className="py-2 pr-4">Date</th>
+                    <th className="py-2 pr-4">Trigger</th>
+                    <th className="py-2 pr-4">Amount</th>
+                    <th className="py-2">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map((h) => (
+                    <tr key={h.id} className="border-b border-slate-100">
+                      <td className="py-2 pr-4 whitespace-nowrap">
+                        {h.createdAt
+                          ? new Date(h.createdAt).toLocaleString()
+                          : "—"}
+                      </td>
+                      <td className="py-2 pr-4">{h.reason ?? "—"}</td>
+                      <td className="py-2 pr-4">₹{h.amount ?? "—"}</td>
+                      <td className="py-2">
+                        <span
+                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                            h.status === "credited"
+                              ? "bg-emerald-100 text-emerald-800"
+                              : h.status === "Under Review"
+                                ? "bg-amber-100 text-amber-800"
+                                : "bg-slate-100 text-slate-700"
+                          }`}
+                        >
+                          {h.status ?? "—"}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="grid lg:grid-cols-2 gap-4 items-start">
+              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
+                <h3 className="font-semibold text-slate-900 mb-4">Threshold details</h3>
+                <div className="h-64">
+                  <p className="text-sm text-slate-600">
+                    Toggle below to compare demo and production thresholds.
+                  </p>
+                </div>
+              </div>
+              <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
                 <div>
                   <h3 className="font-semibold text-slate-900"> Demo mode</h3>
@@ -495,72 +576,10 @@ export function DashboardPage() {
                   </div>
                 )}
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={demoBusy !== null}
-                  onClick={() => runDemo("rain")}
-                  className="rounded-lg bg-slate-900 text-white px-3 py-2 text-sm disabled:opacity-50"
-                >
-                  {demoBusy === "rain" ? "…" : "Simulate heavy rain"}
-                </button>
-                <button
-                  type="button"
-                  disabled={demoBusy !== null}
-                  onClick={() => runDemo("heat")}
-                  className="rounded-lg bg-orange-600 text-white px-3 py-2 text-sm disabled:opacity-50"
-                >
-                  {demoBusy === "heat" ? "…" : "Simulate heatwave"}
-                </button>
-                <button
-                  type="button"
-                  disabled={demoBusy !== null}
-                  onClick={() => runDemo("traffic")}
-                  className="rounded-lg bg-indigo-600 text-white px-3 py-2 text-sm disabled:opacity-50"
-                >
-                  {demoBusy === "traffic" ? "…" : "Simulate traffic jam"}
-                </button>
+                <p className="text-xs text-slate-500">
+                  Simulation controls moved to the unified Demo Mode panel below.
+                </p>
               </div>
-            </div>
-
-            <div className="rounded-xl bg-white p-5 shadow-sm border border-slate-100 overflow-x-auto">
-              <h3 className="font-semibold text-slate-900 mb-4">Payout history</h3>
-              <table className="min-w-full text-sm">
-                <thead>
-                  <tr className="text-left text-slate-500 border-b">
-                    <th className="py-2 pr-4">Date</th>
-                    <th className="py-2 pr-4">Trigger</th>
-                    <th className="py-2 pr-4">Amount</th>
-                    <th className="py-2">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {history.map((h) => (
-                    <tr key={h.id} className="border-b border-slate-100">
-                      <td className="py-2 pr-4 whitespace-nowrap">
-                        {h.createdAt
-                          ? new Date(h.createdAt).toLocaleString()
-                          : "—"}
-                      </td>
-                      <td className="py-2 pr-4">{h.reason ?? "—"}</td>
-                      <td className="py-2 pr-4">₹{h.amount ?? "—"}</td>
-                      <td className="py-2">
-                        <span
-                          className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                            h.status === "credited"
-                              ? "bg-emerald-100 text-emerald-800"
-                              : h.status === "Under Review"
-                                ? "bg-amber-100 text-amber-800"
-                                : "bg-slate-100 text-slate-700"
-                          }`}
-                        >
-                          {h.status ?? "—"}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </>
         )}

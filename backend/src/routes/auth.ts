@@ -40,14 +40,25 @@ router.post(
     const body = (req as Request & { validatedBody: z.infer<typeof signupSchema> })
       .validatedBody;
     const db = requireDb();
+    const email = body.email.trim().toLowerCase();
+    const phone = body.phone.trim();
 
     const exists = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.email, body.email))
+      .where(eq(users.email, email))
       .limit(1);
     if (exists.length) {
       res.status(409).json({ error: "Email already registered" });
+      return;
+    }
+    const existsPhone = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.phone, phone))
+      .limit(1);
+    if (existsPhone.length) {
+      res.status(409).json({ error: "Phone already registered" });
       return;
     }
 
@@ -59,8 +70,8 @@ router.post(
       .insert(users)
       .values({
         fullName: body.fullName,
-        email: body.email,
-        phone: body.phone,
+        email,
+        phone,
         passwordHash: hash,
         platform,
         deliveryCategory,
@@ -112,6 +123,7 @@ router.post(
     });
 
     res.status(201).json({
+      token,
       user: {
         id: created.id,
         email: created.email,
@@ -128,11 +140,12 @@ router.post(
     const body = (req as Request & { validatedBody: z.infer<typeof loginSchema> })
       .validatedBody;
     const db = requireDb();
+    const email = body.email.trim().toLowerCase();
 
     const [u] = await db
       .select()
       .from(users)
-      .where(eq(users.email, body.email))
+      .where(eq(users.email, email))
       .limit(1);
 
     if (!u) {
@@ -165,6 +178,7 @@ router.post(
     });
 
     res.json({
+      token,
       user: {
         id: u.id,
         email: u.email,

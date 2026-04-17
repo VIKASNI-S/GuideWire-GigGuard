@@ -21,3 +21,22 @@ export function haversineKm(
 function deg2rad(deg: number): number {
   return deg * (Math.PI / 180);
 }
+
+export function haversineDistance(
+  lat1: number,
+  lon1: number,
+  lat2: number,
+  lon2: number
+): number {
+  return haversineKm(lat1, lon1, lat2, lon2);
+}
+
+export function isWithinRadius(
+  centerLat: number,
+  centerLon: number,
+  pointLat: number,
+  pointLon: number,
+  radiusKm: number
+): boolean {
+  return haversineKm(centerLat, centerLon, pointLat, pointLon) <= radiusKm;
+}

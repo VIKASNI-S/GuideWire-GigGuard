@@ -115,7 +115,7 @@ class RiskRequest(BaseModel):
         return self
 
 
-app = FastAPI(title="Pheraksha ML", version="2.0.0")
+app = FastAPI(title="Phoeraksha ML", version="2.0.0")
 
 _model_bundle: Optional[dict[str, Any]] = None
 

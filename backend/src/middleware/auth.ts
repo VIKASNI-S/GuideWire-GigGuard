@@ -2,7 +2,7 @@ import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import type { PhoerakshaJwtPayload } from "../types/express";
 
-const COOKIE = "pheraksha_token";
+const COOKIE = "phoeraksha_token";
 
 export function authMiddleware(
   req: Request,
@@ -15,7 +15,10 @@ export function authMiddleware(
     return;
   }
 
-  const token = req.cookies?.[COOKIE] as string | undefined;
+  const cookieToken = req.cookies?.[COOKIE] as string | undefined;
+  const header = req.headers.authorization ?? "";
+  const bearerToken = header.startsWith("Bearer ") ? header.slice(7) : undefined;
+  const token = cookieToken ?? bearerToken;
   if (!token) {
     res.status(401).json({ error: "Unauthorized" });
     return;

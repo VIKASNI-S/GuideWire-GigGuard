@@ -2,9 +2,10 @@ import { Router, type Request, type Response } from "express";
 import { eq, desc } from "drizzle-orm";
 import { z } from "zod";
 import { requireDb } from "../db/index";
-import { users, riskAssessments } from "../db/schema";
+import { fraudAlerts, locationPings, users, riskAssessments } from "../db/schema";
 import { authMiddleware } from "../middleware/auth";
 import { validateBody } from "../middleware/validate";
+import { detectGpsSpoofing } from "../services/fraudDetection";
 
 const router = Router();
 
@@ -15,6 +16,14 @@ const profileUpdateSchema = z.object({
   state: z.string().optional(),
   latitude: z.number().optional(),
   longitude: z.number().optional(),
+});
+
+const locationPingSchema = z.object({
+  latitude: z.number(),
+  longitude: z.number(),
+  accuracyMeters: z.number().int().nonnegative().optional(),
+  accuracy: z.number().int().nonnegative().optional(),
+  source: z.enum(["browser", "mock", "manual"]).optional(),
 });
 
 router.use(authMiddleware);
@@ -73,5 +82,44 @@ router.get("/risk-assessment", async (req: Request, res: Response) => {
 
   res.json({ assessment: r ?? null });
 });
+
+router.post(
+  "/location-ping",
+  validateBody(locationPingSchema),
+  async (req: Request, res: Response) => {
+    const body = (req as Request & { validatedBody: z.infer<typeof locationPingSchema> })
+      .validatedBody;
+    const db = requireDb();
+    const uid = req.userId!;
+
+    const gps = await detectGpsSpoofing(db, uid, body.latitude, body.longitude);
+    console.log(
+      `[GPS CHECK] user=${uid} → isSpoofed=${gps.isSpoofed} reason="${
+        gps.reason ?? "none"
+      }" confidence=${gps.confidence}%`
+    );
+
+    await db.insert(locationPings).values({
+      userId: uid,
+      latitude: String(body.latitude),
+      longitude: String(body.longitude),
+      accuracyMeters: body.accuracyMeters ?? body.accuracy ?? null,
+      source: body.source ?? "browser",
+    });
+
+    if (gps.isSpoofed) {
+      await db.insert(fraudAlerts).values({
+        userId: uid,
+        alertType: "GPS_SPOOFING",
+        severity: gps.confidence > 90 ? "critical" : "high",
+        description: gps.reason ?? "GPS spoofing suspected",
+        evidence: { confidence: gps.confidence, latitude: body.latitude, longitude: body.longitude },
+        status: "pending",
+      });
+    }
+
+    res.json({ ok: true, gps });
+  }
+);
 
 export default router;

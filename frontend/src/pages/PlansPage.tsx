@@ -69,36 +69,51 @@ export function PlansPage() {
           <div className="mt-10 grid md:grid-cols-3 gap-6">
             {plans.map((p) => {
               const popular = p.name.toLowerCase() === "standard";
+              const premium = p.name.toLowerCase() === "premium";
+              const basic = p.name.toLowerCase() === "basic";
               return (
                 <div
                   key={p.id}
-                  className={`rounded-xl border bg-white p-6 shadow-sm flex flex-col ${
-                    popular ? "ring-2 ring-teal-400 border-teal-300" : "border-slate-200"
+                  className={`rounded-xl border p-6 shadow-sm flex flex-col transition-all duration-200 hover:-translate-y-1 hover:shadow-xl ${
+                    popular
+                      ? "bg-gradient-to-br from-sky-500 to-teal-600 border-2 border-sky-400 text-white md:-translate-y-2"
+                      : premium
+                        ? "bg-slate-900 border-2 border-slate-700 text-white"
+                        : "bg-white border-2 border-slate-200 text-slate-900"
                   }`}
                 >
                   {popular && (
-                    <span className="self-start rounded-full bg-teal-100 text-teal-800 text-xs font-semibold px-3 py-1">
+                    <span className="self-start rounded-full bg-amber-400 text-amber-950 text-xs font-semibold px-3 py-1">
                       Most Popular
                     </span>
                   )}
-                  <h2 className="mt-3 text-xl font-bold text-slate-900">{p.name}</h2>
-                  <p className="text-3xl font-bold mt-2 text-slate-900">
+                  <h2 className={`mt-3 text-xl font-bold ${popular || premium ? "text-white" : "text-slate-900"}`}>{p.name}</h2>
+                  <p className={`text-3xl font-bold mt-2 ${popular ? "text-white" : premium ? "text-sky-400" : "text-sky-600"}`}>
                     ₹{p.weeklyPremium}
-                    <span className="text-base font-normal text-slate-500">/week</span>
+                    <span className={`text-base font-normal ${popular || premium ? "text-slate-100" : "text-slate-500"}`}>/week</span>
                   </p>
-                  <ul className="mt-4 text-sm text-slate-600 space-y-2 flex-1">
-                    <li>Rainfall trigger &gt; {p.rainfallTriggerMm} mm</li>
-                    <li>Heat &gt; {p.heatTriggerCelsius}°C</li>
-                    <li>AQI &gt; {p.aqiTrigger}</li>
-                    <li>Congestion &gt; {p.trafficCongestionTrigger}</li>
-                    <li className="font-semibold text-teal-700">
+                  <p className={`mt-2 text-sm font-medium ${popular || premium ? "text-slate-100" : "text-slate-700"}`}>
+                    Triggers at {p.rainfallTriggerMm}mm rain → ₹{p.payoutAmount} payout
+                  </p>
+                  <ul className={`mt-4 text-sm space-y-2 flex-1 ${popular || premium ? "text-slate-100" : "text-slate-700"}`}>
+                    <li className="flex items-center gap-2"><span className={`${popular ? "text-teal-100" : basic ? "text-sky-600" : "text-slate-300"}`}>✓</span>Rainfall trigger &gt; {p.rainfallTriggerMm} mm</li>
+                    <li className="flex items-center gap-2"><span className={`${popular ? "text-teal-100" : basic ? "text-sky-600" : "text-slate-300"}`}>✓</span>Heat &gt; {p.heatTriggerCelsius}°C</li>
+                    <li className="flex items-center gap-2"><span className={`${popular ? "text-teal-100" : basic ? "text-sky-600" : "text-slate-300"}`}>✓</span>AQI &gt; {p.aqiTrigger}</li>
+                    <li className="flex items-center gap-2"><span className={`${popular ? "text-teal-100" : basic ? "text-sky-600" : "text-slate-300"}`}>✓</span>Congestion &gt; {p.trafficCongestionTrigger}</li>
+                    <li className={`font-semibold ${popular ? "text-white" : "text-teal-700"}`}>
                       Payout up to ₹{p.payoutAmount}
                     </li>
                   </ul>
                   <button
                     type="button"
                     onClick={() => setModalPlan(p)}
-                    className="mt-6 w-full rounded-lg bg-slate-900 text-white py-2.5 font-semibold hover:bg-slate-800"
+                    className={`mt-6 w-full rounded-lg py-2.5 font-semibold ${
+                      popular
+                        ? "bg-white text-slate-900 hover:bg-slate-100"
+                        : premium
+                          ? "bg-gradient-to-r from-sky-500 to-teal-500 text-white hover:opacity-95"
+                          : "bg-blue-600 text-white hover:bg-blue-700"
+                    }`}
                   >
                     Select Plan
                   </button>

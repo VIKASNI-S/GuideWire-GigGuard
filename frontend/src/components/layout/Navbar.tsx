@@ -2,7 +2,8 @@ import { Link } from "react-router-dom";
 
 export function Navbar() {
   return (
-    <header className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
+    <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur">
+      <div className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
       <Link to="/" className="flex items-center gap-2 text-white">
         <img
           src="/favicon.svg"
@@ -18,6 +19,12 @@ export function Navbar() {
         <a href="#features" className="hover:text-white transition-colors">
           Features
         </a>
+        <a
+          href="/admin/login"
+          className="text-slate-400 hover:text-white text-sm border border-slate-600 px-3 py-1 rounded-md hover:border-slate-400 transition-all"
+        >
+          Admin Portal
+        </a>
       </nav>
       <Link
         to="/dashboard"
@@ -25,6 +32,7 @@ export function Navbar() {
       >
         Dashboard
       </Link>
+      </div>
     </header>
   );
 }

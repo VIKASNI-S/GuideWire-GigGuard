@@ -8,7 +8,7 @@ import {
 } from "react";
 import { api } from "../services/api";
 
-const LS_KEY = "pheraksha_mock_demo_mode";
+const LS_KEY = "phoeraksha_mock_demo_mode";
 
 export type ScenarioKey =
   | "normal"

@@ -296,4 +296,86 @@ router.post("/assess", async (req: Request, res: Response) => {
   res.status(201).json({ assessment: inserted, scores });
 });
 
+router.get("/alerts", async (req: Request, res: Response) => {
+  const db = requireDb();
+  const [u] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, req.userId!))
+    .limit(1);
+  if (!u) {
+    res.status(404).json({ error: "Not found" });
+    return;
+  }
+  const lat = u.latitude ? parseFloat(String(u.latitude)) : 13.0827;
+  const lon = u.longitude ? parseFloat(String(u.longitude)) : 80.2707;
+  const [weather, traffic] = await Promise.all([
+    fetchWeatherForCoords(lat, lon),
+    fetchTrafficForCoords(lat, lon),
+  ]);
+  const [polRow] = await db
+    .select({ plan: plans })
+    .from(policies)
+    .innerJoin(plans, eq(policies.planId, plans.id))
+    .where(and(eq(policies.userId, req.userId!), eq(policies.status, "active")))
+    .limit(1);
+  if (!polRow) {
+    res.json({ alerts: [] });
+    return;
+  }
+  const demo = isDemoModeEnv() || isMockDataDemoMode();
+  const t = getThresholdPack(polRow.plan, demo);
+  const alerts: Array<{ type: string; level: "approaching" | "active"; message: string }> = [];
+  const rainRatio = weather.rainfallMmLastHour / Math.max(1, t.rain);
+  if (rainRatio >= 1) {
+    alerts.push({
+      type: "active_rain",
+      level: "active",
+      message: `⛈️ TRIGGER ACTIVE! Heavy rain ${weather.rainfallMmLastHour.toFixed(1)}mm. Payout processing.`,
+    });
+  } else if (rainRatio >= 0.8) {
+    alerts.push({
+      type: "approaching_rain",
+      level: "approaching",
+      message: `🌧️ Rain detected: ${weather.rainfallMmLastHour.toFixed(1)}mm — approaching your ${t.rain}mm threshold.`,
+    });
+  }
+  const tempRatio = weather.temperatureC / Math.max(1, t.heat);
+  if (tempRatio >= 1) {
+    alerts.push({
+      type: "active_heat",
+      level: "active",
+      message: `🔥 TRIGGER ACTIVE! ${weather.temperatureC.toFixed(1)}°C detected. Auto-payout being processed.`,
+    });
+  } else if (tempRatio >= 0.8) {
+    alerts.push({
+      type: "approaching_heat",
+      level: "approaching",
+      message: `🌡️ Temperature rising: ${weather.temperatureC.toFixed(1)}°C — threshold is ${t.heat}°C.`,
+    });
+  }
+  const aqiRatio = weather.aqi / Math.max(1, t.aqi);
+  if (aqiRatio >= 1) {
+    alerts.push({
+      type: "active_aqi",
+      level: "active",
+      message: `🏭 TRIGGER ACTIVE! AQI ${Math.round(weather.aqi)} — hazardous.`,
+    });
+  } else if (aqiRatio >= 0.8) {
+    alerts.push({
+      type: "approaching_aqi",
+      level: "approaching",
+      message: `😷 Air quality worsening: AQI ${Math.round(weather.aqi)}. Threshold is ${t.aqi}.`,
+    });
+  }
+  if (traffic.roadClosure || traffic.congestionRatio > t.congestion) {
+    alerts.push({
+      type: "active_traffic",
+      level: "active",
+      message: "🚦 TRIGGER ACTIVE! Severe congestion detected. Income protection payout credited.",
+    });
+  }
+  res.json({ alerts });
+});
+
 export default router;
