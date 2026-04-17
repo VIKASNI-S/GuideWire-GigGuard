@@ -53,32 +53,53 @@ export function LandingPage() {
         </div>
         <div className="relative h-[420px] flex items-center justify-center">
           <div className="relative flex items-center justify-center">
-            <svg width="300" height="300" viewBox="0 0 200 200">
-              <circle cx="100" cy="100" r="90" fill="none" stroke="#0ea5e9" strokeWidth="1" opacity="0.3">
+            {/* <svg width="300" height="300" viewBox="0 0 200 200"> */}
+            {/* <circle cx="100" cy="100" r="90" fill="none" stroke="#0ea5e9" strokeWidth="1" opacity="0.3">
                 <animate attributeName="r" values="85;95;85" dur="3s" repeatCount="indefinite" />
                 <animate attributeName="opacity" values="0.3;0.1;0.3" dur="3s" repeatCount="indefinite" />
-              </circle>
-              <path
+              </circle> */}
+            {/* <path
                 d="M100 20 L160 50 L160 110 Q160 155 100 180 Q40 155 40 110 L40 50 Z"
                 fill="url(#shieldGrad)"
                 stroke="#0ea5e9"
                 strokeWidth="2"
               />
+              
               <defs>
                 <linearGradient id="shieldGrad" x1="0" y1="0" x2="1" y2="1">
                   <stop offset="0%" stopColor="#0ea5e9" stopOpacity="0.8" />
                   <stop offset="100%" stopColor="#0d9488" stopOpacity="0.6" />
                 </linearGradient>
-              </defs>
-              <text x="100" y="115" textAnchor="middle" fontSize="40" fill="white">🛡️</text>
-            </svg>
-          </div>
-          {["₹24L+ Paid Out", "99.2% Uptime", "< 10 sec Payout"].map((s, i) => (
+              </defs> */}
+            {/* <text x="100" y="115" textAnchor="middle" fontSize="40" fill="white">🛡️</text> */}
+            {/* </svg>
+          </div> */}
+            {/* {["₹24L+ Paid Out", "99.2% Uptime", "< 10 sec Payout"].map((s, i) => (
             <motion.div key={s} animate={{ y: [0, -8, 0] }} transition={{ repeat: Infinity, duration: 3 + i }} className={`absolute rounded-lg bg-slate-800/90 border border-slate-700 px-3 py-2 text-xs ${i === 0 ? "right-2 top-6" : i === 1 ? "left-3 bottom-10" : "left-0 top-20"}`}>
               <span className="inline-block h-2 w-2 rounded-full bg-emerald-400 mr-1 animate-pulse" />
               {s}
             </motion.div>
-          ))}
+          ))} */}
+            {/* <image
+                href="/Gig.png"   // or URL
+                x="40"
+                y="20"
+                width="120"
+                height="160"
+                preserveAspectRatio="xMidYMid meet"
+              /> */}
+            {/* <img
+                src="/Gig.png"
+                className="w-full max-w-lg h-auto"
+              />
+            </svg> */}
+            <div className="w-full md:w-1/2 flex justify-center items-center">
+              <img
+                src="/Gig.png"
+                className="w-full max-w-xl h-auto rounded-2xl shadow-lg"
+              />
+            </div>
+          </div>
         </div>
       </section>
 
@@ -115,10 +136,10 @@ export function LandingPage() {
       <section id="features" className="bg-slate-50 text-slate-900 py-16">
         <div className="max-w-6xl mx-auto px-6 grid md:grid-cols-2 lg:grid-cols-4 gap-5">
           {[
-            ["⚡", "Instant Payouts", "No claims. No waiting. Fully automatic."],
-            ["🌧️", "Weather-Based Protection", "Smart triggers using real-time environmental data."],
-            ["🤖", "AI Risk Engine", "Multi-factor risk evaluation for fairness."],
-            ["<i className='fa-thin fa-shield'></i>", "Fraud Protection", "Advanced GPS spoofing detection using behavioral analysis."],
+            ["", "Instant Payouts", "No claims. No waiting. Fully automatic."],
+            ["", "Weather-Based Protection", "Smart triggers using real-time environmental data."],
+            ["", "AI Risk Engine", "Multi-factor risk evaluation for fairness."],
+            ["", "Fraud Protection", "Advanced GPS spoofing detection using behavioral analysis."],
           ].map(([i, t, d], idx) => (
             <motion.div key={t} initial={{ rotateX: 90, opacity: 0 }} whileInView={{ rotateX: 0, opacity: 1 }} transition={{ delay: idx * 0.08 }} className="rounded-xl border bg-white p-5 hover:-translate-y-1 hover:shadow-xl transition">
               <p className="text-2xl">{i}</p>

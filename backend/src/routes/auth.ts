@@ -37,99 +37,107 @@ router.post(
   "/signup",
   validateBody(signupSchema),
   async (req: Request, res: Response): Promise<void> => {
-    const body = (req as Request & { validatedBody: z.infer<typeof signupSchema> })
-      .validatedBody;
-    const db = requireDb();
-    const email = body.email.trim().toLowerCase();
-    const phone = body.phone.trim();
+    try {
+      const body = (req as Request & { validatedBody: z.infer<typeof signupSchema> })
+        .validatedBody;
+      const db = requireDb();
+      const email = body.email.trim().toLowerCase();
+      const phone = body.phone.trim();
 
-    const exists = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.email, email))
-      .limit(1);
-    if (exists.length) {
-      res.status(409).json({ error: "Email already registered" });
-      return;
-    }
-    const existsPhone = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(eq(users.phone, phone))
-      .limit(1);
-    if (existsPhone.length) {
-      res.status(409).json({ error: "Phone already registered" });
-      return;
-    }
+      const exists = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.email, email))
+        .limit(1);
+      if (exists.length) {
+        res.status(409).json({ error: "Email already registered" });
+        return;
+      }
+      const existsPhone = await db
+        .select({ id: users.id })
+        .from(users)
+        .where(eq(users.phone, phone))
+        .limit(1);
+      if (existsPhone.length) {
+        res.status(409).json({ error: "Phone already registered" });
+        return;
+      }
 
-    const hash = await bcrypt.hash(body.password, 12);
-    const platform = mapPlatform(body.platform);
-    const deliveryCategory = mapCategory(body.deliveryCategory);
+      const hash = await bcrypt.hash(body.password, 12);
+      const platform = mapPlatform(body.platform);
+      const deliveryCategory = mapCategory(body.deliveryCategory);
 
-    const [created] = await db
-      .insert(users)
-      .values({
-        fullName: body.fullName,
-        email,
-        phone,
-        passwordHash: hash,
-        platform,
-        deliveryCategory,
-        workerIdPlatform: body.workerIdPlatform ?? null,
-        yearsExperience: body.yearsExperience,
-        avgDailyOrders: body.avgDailyOrders,
-        avgWeeklyIncome: String(body.avgWeeklyIncome),
-        city: body.city,
-        state: body.state,
-        latitude:
-          body.latitude !== undefined ? String(body.latitude) : null,
-        longitude:
-          body.longitude !== undefined ? String(body.longitude) : null,
-        vehicleType: body.vehicleType.toLowerCase(),
-        aadhaarLast4: body.aadhaarLast4,
-        bankAccountNumber: body.bankAccountNumber ?? null,
-        upiId: body.upiId,
-        trustScore: 70,
-        isVerified: false,
-        dateOfBirth: body.dateOfBirth,
-        workingHoursPerDay: String(body.workingHoursPerDay),
-        preferredPayoutMethod: body.preferredPayoutMethod,
-        signupIp: req.ip ?? null,
-      })
-      .returning({
-        id: users.id,
-        email: users.email,
-        fullName: users.fullName,
+      const [created] = await db
+        .insert(users)
+        .values({
+          fullName: body.fullName,
+          email,
+          phone,
+          passwordHash: hash,
+          platform,
+          deliveryCategory,
+          workerIdPlatform: body.workerIdPlatform ?? null,
+          yearsExperience: body.yearsExperience,
+          avgDailyOrders: body.avgDailyOrders,
+          avgWeeklyIncome: String(body.avgWeeklyIncome),
+          city: body.city,
+          state: body.state,
+          latitude:
+            body.latitude !== undefined ? String(body.latitude) : null,
+          longitude:
+            body.longitude !== undefined ? String(body.longitude) : null,
+          vehicleType: body.vehicleType.toLowerCase(),
+          aadhaarLast4: body.aadhaarLast4,
+          bankAccountNumber: body.bankAccountNumber ?? null,
+          upiId: body.upiId,
+          trustScore: 70,
+          isVerified: false,
+          dateOfBirth: body.dateOfBirth,
+          workingHoursPerDay: String(body.workingHoursPerDay),
+          preferredPayoutMethod: body.preferredPayoutMethod,
+          signupIp: req.ip ?? null,
+        })
+        .returning({
+          id: users.id,
+          email: users.email,
+          fullName: users.fullName,
+        });
+
+      const secret = process.env.JWT_SECRET;
+      if (!secret) {
+        res.status(500).json({ error: "Server misconfiguration: JWT_SECRET missing" });
+        return;
+      }
+
+      const maxAge = 7 * 24 * 60 * 60;
+      const token = jwt.sign(
+        { sub: created.id, email: created.email },
+        secret,
+        { expiresIn: `${maxAge}s` }
+      );
+
+      res.cookie(AUTH_COOKIE_NAME, token, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        maxAge: maxAge * 1000,
       });
 
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      res.status(500).json({ error: "Server misconfiguration" });
-      return;
+      res.status(201).json({
+        token,
+        user: {
+          id: created.id,
+          email: created.email,
+          fullName: created.fullName,
+        },
+      });
+    } catch (err: any) {
+      console.error("[SIGNUP_ERROR]", err);
+      res.status(500).json({ 
+        error: "Signup failed due to a server error",
+        message: err.message 
+      });
     }
-
-    const maxAge = 7 * 24 * 60 * 60;
-    const token = jwt.sign(
-      { sub: created.id, email: created.email },
-      secret,
-      { expiresIn: `${maxAge}s` }
-    );
-
-    res.cookie(AUTH_COOKIE_NAME, token, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      maxAge: maxAge * 1000,
-    });
-
-    res.status(201).json({
-      token,
-      user: {
-        id: created.id,
-        email: created.email,
-        fullName: created.fullName,
-      },
-    });
   }
 );
 

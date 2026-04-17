@@ -6,7 +6,7 @@ from typing import Any, Optional
 import joblib
 import numpy as np
 from fastapi import FastAPI
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, root_validator
 
 from model.train import FEATURE_COLS, MODEL_PATH, target_risk_score, train
 
@@ -97,22 +97,26 @@ class PremiumRequest(BaseModel):
     base_premium: float = 70.0
     city_name: Optional[str] = None
 
-    @model_validator(mode="after")
-    def merge_city(self):
-        if self.city_name and self.features.city_name is None:
-            self.features.city_name = self.city_name
-        return self
+    @root_validator(pre=False)
+    def merge_city(cls, values):
+        city_name = values.get("city_name")
+        features = values.get("features")
+        if city_name and features and features.city_name is None:
+            features.city_name = city_name
+        return values
 
 
 class RiskRequest(BaseModel):
     features: FeaturePayload
     city_name: Optional[str] = None
 
-    @model_validator(mode="after")
-    def merge_city(self):
-        if self.city_name and self.features.city_name is None:
-            self.features.city_name = self.city_name
-        return self
+    @root_validator(pre=False)
+    def merge_city(cls, values):
+        city_name = values.get("city_name")
+        features = values.get("features")
+        if city_name and features and features.city_name is None:
+            features.city_name = city_name
+        return values
 
 
 app = FastAPI(title="Phoeraksha ML", version="2.0.0")

@@ -23,7 +23,10 @@ import {
   pickTriggerDecision,
   type TriggerDecision,
 } from "./triggerEvaluation";
-import { isDemoModeActive as isMockDataDemoMode } from "./mockDataService";
+import { 
+  isDemoModeActive as isMockDataDemoMode,
+  getActiveScenario 
+} from "./mockDataService";
 
 export interface OverrideWeather {
   rainfallMm?: number;
@@ -154,9 +157,7 @@ export async function runTriggerForPolicy(
 
   logTriggerConsole(trigger, istHour);
 
-  const dupWindowMs = isMockDataDemoMode()
-    ? 30 * 60 * 1000
-    : 6 * 60 * 60 * 1000;
+  const dupWindowMs = isMockDataDemoMode() ? 60 * 1000 : 6 * 60 * 60 * 1000;
   const dupSince = new Date(Date.now() - dupWindowMs);
   const dupEv = await db
     .select({ id: triggerEvents.id })
@@ -203,7 +204,7 @@ export async function runTriggerForPolicy(
   }
 
   const payoutCooldownMs = isMockDataDemoMode()
-    ? 30 * 60 * 1000
+    ? 60 * 1000
     : 6 * 60 * 60 * 1000;
   const lastAt = await lastPayoutAt(db, policyId);
   if (lastAt && Date.now() - lastAt.getTime() < payoutCooldownMs) {
@@ -223,16 +224,21 @@ export async function runTriggerForPolicy(
       : await fetchWeatherTriangulation(lat, lon);
 
   // Scenario-based Activity Logic
-  const scenario = isMockDataDemoMode() ? require("./mockDataService").getActiveScenario() : "normal";
+  const scenario = isMockDataDemoMode() ? getActiveScenario() : "normal";
   let activityPercent = 90; // Default normal
   if (scenario === "normal") {
     activityPercent = 80 + Math.random() * 20;
   } else if (scenario === "flood") {
     activityPercent = 10 + Math.random() * 30;
+  } else if (scenario === "heavy_rain") {
+    activityPercent = 30 + Math.random() * 20;
+  } else if (scenario === "heatwave") {
+    activityPercent = 20 + Math.random() * 25;
   } else {
     activityPercent = 40 + Math.random() * 30;
   }
 
+  const isActivityDrop = (activityPercent / 100) < 0.6;
   const basePayout = num(row.plan.payoutAmount);
   const payoutAmount =
     Math.round(basePayout * trigger.payoutFraction * 100) / 100;
@@ -257,6 +263,15 @@ export async function runTriggerForPolicy(
       activityValue: String(activityPercent.toFixed(1)),
     })
     .returning({ id: triggerEvents.id });
+
+  if (!isActivityDrop && !isMockDataDemoMode()) {
+    return {
+      ok: true,
+      message: "Environmental threshold met, but worker activity disruption was NOT verified. No payout triggered.",
+      triggered: false,
+      reason: "no_activity_disruption",
+    };
+  }
 
   const fraudResult = await runFullFraudCheck(db, {
     userId: row.user.id,

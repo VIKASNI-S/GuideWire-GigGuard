@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 export function Navbar() {
+  const { user } = useAuth();
   return (
     <header className="fixed top-0 left-0 right-0 z-50 border-b border-slate-800/60 bg-slate-950/90 backdrop-blur">
       <div className="flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
@@ -26,12 +28,21 @@ export function Navbar() {
           Admin Portal
         </a>
       </nav>
-      <Link
-        to="/dashboard"
-        className="rounded-lg bg-gradient-to-r from-sky-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95"
-      >
-        Dashboard
-      </Link>
+      {user ? (
+        <Link
+          to="/dashboard"
+          className="rounded-lg bg-gradient-to-r from-sky-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95"
+        >
+          Dashboard
+        </Link>
+      ) : (
+        <Link
+          to="/signup"
+          className="rounded-lg bg-gradient-to-r from-sky-500 to-teal-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:opacity-95"
+        >
+          Get Started
+        </Link>
+      )}
       </div>
     </header>
   );
