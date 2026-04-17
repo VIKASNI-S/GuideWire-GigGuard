@@ -244,9 +244,7 @@ It includes real-time metrics such as active users, total payouts, fraud alerts,
 
 The loss ratio is calculated as:
 
-LossRatio=
-TotalPremiums
-TotalPayouts
+LossRatio= TotalPremiums/ TotalPayouts
 	​
 
 
