@@ -1,4 +1,4 @@
-# 🛡️ GigGuard / Pheoraksha
+#  Pheoraksha
 
 **AI-powered parametric income protection for India’s gig delivery workforce.**
 
@@ -6,7 +6,7 @@ GigGuard is a state-of-the-art insurance platform designed to protect gig worker
 
 ---
 
-## 🚀 Tech Stack
+## Tech Stack
 
 -   **Frontend**: React 18 + Vite (configured for port 3000)
 -   **Backend**: Express + TypeScript + Drizzle ORM (configured for port 5000)
@@ -15,7 +15,7 @@ GigGuard is a state-of-the-art insurance platform designed to protect gig worker
 
 ---
 
-## 🛠️ Prerequisites
+##  Prerequisites
 
 Before you begin, ensure you have the following installed:
 - [Node.js](https://nodejs.org/) (v18 or higher)
@@ -25,7 +25,7 @@ Before you begin, ensure you have the following installed:
 
 ---
 
-## ⚙️ Project Configuration
+## Project Configuration
 
 The project requires several environment variables to function properly. You should create `.env` files in each service directory.
 
@@ -49,7 +49,7 @@ The project requires several environment variables to function properly. You sho
 
 ---
 
-## 🏃 Local Setup Instructions
+##  Local Setup Instructions
 
 Follow these steps in order to get the full solution running:
 
@@ -58,7 +58,7 @@ Follow these steps in order to get the full solution running:
 cd backend
 npm install
 cp .env.example .env
-# 📝 Update .env with your DATABASE_URL and API keys
+#  Update .env with your DATABASE_URL and API keys
 npm run db:push          # Initialize database schema
 npm run db:seed          # (Optional) Seed the database with demo data
 npm run dev              # Starts backend on http://localhost:5000
@@ -84,13 +84,13 @@ uvicorn main:app --reload --port 8000
 cd frontend
 npm install
 cp .env.example .env
-# 📝 Update .env if your backend is not on localhost:5000
+# Update .env if your backend is not on localhost:5000
 npm run dev              # Starts frontend on http://localhost:3000
 ```
 
 ---
 
-## 🧪 Testing & Simulation
+## Testing & Simulation
 
 GigGuard includes built-in tools to test the parametric triggers and fraud detection:
 
@@ -100,7 +100,7 @@ GigGuard includes built-in tools to test the parametric triggers and fraud detec
 
 ---
 
-## 📁 Project Structure
+##  Project Structure
 
 ```text
 GuideWire-GigGuard/
@@ -112,12 +112,9 @@ GuideWire-GigGuard/
 
 ---
 
-## 🔒 Security Summary
+##  Security Summary
 -   **Passwords**: Hashed using `bcryptjs` (12 rounds).
 -   **Authentication**: JWT-based session management with `httpOnly` cookies.
 -   **Validation**: Schema validation via `zod` for all API inputs.
 
 ---
-
-### 💡 Need Help?
-If you encounter `connection refused` errors, ensure all three services are running and the ports match your `.env` configuration.
